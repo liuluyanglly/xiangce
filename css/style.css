@@ -1,0 +1,746 @@
+/* ==========================================================================
+   EternalEcho - Luxury Romantic Digital Space
+   Design Spec: High-End Agency / OLED Deep Midnight & Ethereal Glass
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-display: 'Cinzel', serif;
+  
+  --bg-deep: #030305;
+  --bg-surface: #0a0a0f;
+  --accent-rose: #f43f5e;
+  --accent-gold: #fbbf24;
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100dvh;
+  background-color: var(--bg-deep);
+  color: #f3f4f6;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none; /* Disable iOS Safari / WeChat long press to save image */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================================
+   Strict Anti-Copy & Anti-Download Image Protection
+   ========================================================= */
+img, video, canvas {
+  -webkit-touch-callout: none !important; /* Disables WeChat / Safari "Save Image" popups */
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none !important;
+  pointer-events: auto;
+}
+
+/* Security shield over images preventing dragging/saving */
+.secure-img-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: transparent;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(10, 10, 15, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 63, 94, 0.4);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---------------------------------------------------------
+   Film Grain / Vignette Overlays
+   --------------------------------------------------------- */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.radial-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(3, 3, 5, 0.85) 100%);
+}
+
+/* ---------------------------------------------------------
+   Double-Bezel Architecture (Haptic Hardware Enclosures)
+   --------------------------------------------------------- */
+.double-bezel {
+  padding: 0.375rem;
+  border-radius: 1.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08),
+              0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: transform 0.6s var(--ease-spring), box-shadow 0.6s var(--ease-spring);
+}
+
+.double-bezel-inner {
+  border-radius: calc(1.75rem - 0.375rem);
+  background: rgba(12, 12, 18, 0.75);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Floating Island Navigation */
+.island-nav {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 9999px;
+  background: rgba(15, 15, 22, 0.75);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
+              0 16px 36px -10px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  max-width: calc(100vw - 2rem);
+}
+
+.nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  transition: all 0.35s var(--ease-spring);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nav-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(139, 92, 246, 0.25));
+  box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.35), 0 4px 15px rgba(244, 63, 94, 0.2);
+}
+
+/* ---------------------------------------------------------
+   Button-In-Button Nested Trailing Architecture
+   --------------------------------------------------------- */
+.btn-nested {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12),
+              0 8px 24px -4px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.4s var(--ease-spring);
+}
+
+.btn-nested:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.btn-nested:active {
+  transform: scale(0.97);
+}
+
+.btn-nested-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s var(--ease-spring);
+}
+
+.btn-nested:hover .btn-nested-icon {
+  transform: translateX(3px) scale(1.05);
+}
+
+/* ---------------------------------------------------------
+   Vinyl Record Player (Vintage Turntable)
+   --------------------------------------------------------- */
+.vinyl-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.vinyl-disc {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #252528 20%, #111113 22%, #111113 25%, #252528 27%, #09090b 70%);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 0 2px rgba(255,255,255,0.06);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: spinVinyl 16s linear infinite;
+  animation-play-state: paused;
+}
+
+.vinyl-disc.playing {
+  animation-play-state: running;
+}
+
+.vinyl-center-label {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f43f5e, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px #18181b, 0 0 0 5px rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.vinyl-tonearm {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  width: 50px;
+  height: 80px;
+  transform-origin: 38px 10px;
+  transform: rotate(-35deg);
+  transition: transform 0.8s var(--ease-spring);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vinyl-tonearm.playing {
+  transform: rotate(0deg);
+}
+
+@keyframes spinVinyl {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---------------------------------------------------------
+   3D Realistic Flipbook Album Styles
+   --------------------------------------------------------- */
+.flipbook-stage {
+  perspective: 2400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+}
+
+.book-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 820px;
+  height: 520px;
+  transform-style: preserve-3d;
+  transition: transform 0.6s var(--ease-smooth);
+}
+
+@media (max-width: 768px) {
+  .flipbook-stage {
+    padding: 0.5rem;
+  }
+  .book-wrapper {
+    width: 92vw;
+    max-width: 420px;
+    height: min(600px, 74dvh);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .book-wrapper {
+    width: 94vw;
+    max-width: 780px;
+    height: min(560px, 68dvh);
+  }
+}
+
+.book-sheet {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  border-radius: 0 1.25rem 1.25rem 0;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .book-sheet {
+    left: 0;
+    width: 100%;
+    transform-origin: left center;
+    border-radius: 1.25rem;
+  }
+}
+
+.sheet-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: inherit;
+  overflow: hidden;
+  background: #14141d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sheet-front {
+  z-index: 2;
+}
+
+.sheet-back {
+  transform: rotateY(180deg);
+  background: #101017;
+  z-index: 1;
+}
+
+.book-sheet.flipped {
+  transform: rotateY(-180deg);
+}
+
+/* Spine Shadow / Paper Crease */
+.sheet-spine-shadow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30px;
+  background: linear-gradient(to right, rgba(0,0,0,0.6), transparent);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------
+   AI Vision HUD & Neural Monitor
+   --------------------------------------------------------- */
+.ai-hud-pill {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(12, 12, 18, 0.85);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
+              0 12px 30px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(16px);
+  transition: all 0.4s var(--ease-spring);
+}
+
+.ai-pulse-dot {
+  color: #f43f5e;
+  font-size: 13px;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(244, 63, 94, 0.8);
+  animation: heartPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.35); opacity: 1; text-shadow: 0 0 18px #f43f5e; }
+}
+
+.ai-camera-video {
+  position: fixed;
+  bottom: 4.8rem;
+  right: 1.5rem;
+  width: 140px;
+  height: 105px;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #000;
+  transform: scaleX(-1);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+  z-index: 45;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ai-camera-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------
+   Fullscreen Mode Canvas Containers
+   --------------------------------------------------------- */
+.mode-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  transition: opacity 0.6s var(--ease-smooth), visibility 0.6s;
+}
+
+.mode-viewport.hidden-view {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------
+   Heartbeat / Pulsing Text
+   --------------------------------------------------------- */
+.gradient-text-love {
+  background: linear-gradient(135deg, #fff 20%, #f43f5e 65%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #fef08a 0%, #fbbf24 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---------------------------------------------------------
+   Customization Drawer (Slide-Over)
+   --------------------------------------------------------- */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 60;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s;
+}
+
+.drawer-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 440px;
+  background: #0d0d14;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: -20px 0 50px rgba(0, 0, 0, 0.9);
+  z-index: 61;
+  transform: translateX(100%);
+  transition: transform 0.5s var(--ease-spring);
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-backdrop.active .drawer-panel {
+  transform: translateX(0);
+}
+
+/* Touch controls overlay for mobile */
+.mobile-touch-bar {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* =========================================================
+   Mobile Cinema Fullscreen Lightbox Styles
+   ========================================================= */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(3, 3, 5, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-spring);
+}
+
+.lightbox-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lightbox-img-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 1000px;
+  max-height: 85dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  touch-action: none;
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 1.25rem;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s var(--ease-spring);
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* Bottom Glass Caption Bar */
+.lightbox-caption-bar {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2.5rem);
+  max-width: 600px;
+  background: rgba(15, 15, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.5rem;
+  padding: 1rem 1.25rem;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  z-index: 10;
+}
+
+.lightbox-caption-bar.hidden-caption {
+  opacity: 0;
+  transform: translate(-50%, 20px);
+  pointer-events: none;
+}
+
+/* =========================================================
+   Month Filter Bar & Horizontal Scrolling
+   ========================================================= */
+#monthFilterContainer {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+#monthFilterContainer::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.month-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-spring);
+}
+
+.month-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.month-pill.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.35), rgba(139, 92, 246, 0.35));
+  border-color: rgba(244, 63, 94, 0.6);
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.35);
+}
+
+/* =========================================================
+   Cinematic 3D Universe HUD & Timeline Warp Dial
+   ========================================================= */
+.universe-hud-bar {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 2.5rem);
+  max-width: 1200px;
+  pointer-events: none;
+}
+
+.universe-hud-bar > * {
+  pointer-events: auto;
+}
+
+.universe-timeline-dock {
+  position: fixed;
+  bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(10, 10, 16, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(244, 63, 94, 0.2);
+  max-width: calc(100vw - 1.5rem);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.universe-timeline-dock::-webkit-scrollbar {
+  display: none;
+}
+
+.sparkle-heart {
+  will-change: transform, opacity;
+  pointer-events: none;
+  user-select: none;
+}
+
+.universe-month-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-spring);
+}
+
+.universe-month-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.universe-month-pill.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.4), rgba(168, 85, 247, 0.4));
+  border-color: rgba(244, 63, 94, 0.6);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.4);
+}
+
+/* Audio Visualizer Waves */
+.audio-waves-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.audio-bar {
+  width: 2.5px;
+  height: 4px;
+  background: #f43f5e;
+  border-radius: 9999px;
+  transition: height 0.2s ease;
+}
+
+.audio-bar.playing:nth-child(1) { animation: wavePulse 0.8s ease-in-out infinite 0.1s; }
+.audio-bar.playing:nth-child(2) { animation: wavePulse 0.6s ease-in-out infinite 0.3s; }
+.audio-bar.playing:nth-child(3) { animation: wavePulse 0.9s ease-in-out infinite 0.2s; }
+.audio-bar.playing:nth-child(4) { animation: wavePulse 0.7s ease-in-out infinite 0.4s; }
+
+@keyframes wavePulse {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}

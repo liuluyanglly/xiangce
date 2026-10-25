@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EternalEcho | 专属浪漫全景相册与记忆星系</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Three.js + OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <!-- GSAP Animation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  
+  <!-- Canvas Confetti for Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <!-- MediaPipe Hands & Camera Utils for Pure Client-Side AI Gesture Recognition -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="relative bg-[#030305] text-zinc-100 min-h-[100dvh] overflow-x-hidden">
+
+  <!-- Ambient Film Grain & Radial Vignette -->
+  <div class="noise-overlay"></div>
+  <div class="radial-vignette"></div>
+
+  <!-- Background Neural Synapse Electrical Network -->
+  <canvas id="neuralCanvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none"></canvas>
+
+  <!-- =========================================================================
+       Top Floating Island Navigation (Double-Bezel Consolidated Master Architecture)
+       "下方的按钮合并到上边，4 大 3D 风格一键切换"
+       ========================================================================= -->
+  <nav class="island-nav">
+    <div class="flex items-center gap-1 overflow-x-auto py-0.5 max-w-[56vw] sm:max-w-none no-scrollbar">
+      <button class="nav-tab active" data-shape="heart" title="3D 立体旋转大爱心聚合照片墙">
+        <span class="text-xs">💖</span>
+        <span>3D立体爱心</span>
+      </button>
+      <button class="nav-tab" data-shape="sphere" title="3D 斐波那契记忆星球">
+        <span class="text-xs">🌐</span>
+        <span>记忆星球</span>
+      </button>
+      <button class="nav-tab" data-shape="helix" title="3D 命运双螺旋阶梯">
+        <span class="text-xs">🧬</span>
+        <span>双螺旋</span>
+      </button>
+      <button class="nav-tab" data-shape="carousel" title="3D 环形走马灯画廊与倒影">
+        <span class="text-xs">🎠</span>
+        <span>环形走马灯</span>
+      </button>
+      <button class="nav-tab" data-shape="cube" title="双层 3D 爆炸旋转魔方">
+        <span class="text-xs">🧊</span>
+        <span>爆炸魔方</span>
+      </button>
+      <button class="nav-tab" id="navClimaxLetterBtn" title="阅读关于我们的回忆长信">
+        <span class="text-xs">💌</span>
+        <span>回忆长信</span>
+      </button>
+      <button class="nav-tab" id="navStorylineBtn" data-mode="storyline" title="浏览按月份时间轴排列的照片">
+        <span class="text-xs">⏳</span>
+        <span>时光足迹</span>
+      </button>
+    </div>
+
+    <div class="h-4 w-[1px] bg-white/10 mx-1 flex-shrink-0"></div>
+
+    <div class="flex items-center gap-1.5 flex-shrink-0">
+      <!-- Music Play/Pause Quick Pill & Sequential Playlist Controller -->
+      <div class="flex items-center gap-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+        <button id="quickMusicPrevBtn" title="上一首" class="w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white flex items-center justify-center transition-all">⏮</button>
+        <button id="quickMusicBtn" class="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/15 text-xs text-zinc-300 transition-all">
+          <div class="audio-waves-container">
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+          </div>
+          <span id="quickMusicTitle" class="text-[11px] font-mono max-w-[70px] sm:max-w-[110px] truncate">理想三旬</span>
+        </button>
+        <button id="quickMusicNextBtn" title="下一首歌曲/回忆原声" class="w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white flex items-center justify-center transition-all">⏭</button>
+      </div>
+
+      <!-- Heart Burst Button -->
+      <button id="celebrateBtn" title="发射爱心" class="w-8 h-8 rounded-full bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 flex items-center justify-center transition-all duration-300 active:scale-95 text-rose-400">
+        ♥
+      </button>
+
+      <!-- Customization Drawer Trigger -->
+      <button id="openDrawerBtn" title="专属定制" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-all duration-300 text-xs">
+        ⚙️
+      </button>
+    </div>
+  </nav>
+
+  <!-- =========================================================================
+       VIEWPORT HERO: 3D Master Spatial Memory Stage (Heart / Sphere / Helix / Carousel / Cube)
+       ========================================================================= -->
+  <section id="viewportGalaxy" class="mode-viewport">
+    <div id="sphereContainer" class="w-full h-full"></div>
+  </section>
+
+  <!-- Top-left Brand & Couple Tag with Live Love Timer -->
+  <header class="fixed top-4 left-4 z-40 flex items-center gap-2 sm:gap-3 pointer-events-auto">
+    <div class="w-8 sm:w-9 h-8 sm:h-9 rounded-2xl bg-gradient-to-tr from-rose-500 to-purple-600 p-[1px] shadow-[0_0_20px_rgba(244,63,94,0.35)] flex-shrink-0">
+      <div class="w-full h-full bg-[#0a0a0f] rounded-[15px] flex items-center justify-center text-xs font-serif font-bold text-rose-300">
+        EE
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center gap-1.5">
+        <h1 id="coupleTitle" class="text-xs sm:text-sm font-semibold tracking-wider font-serif text-white">Leo & Mia</h1>
+        <span class="text-rose-400 text-xs animate-pulse">♥</span>
+      </div>
+      <p id="headerLoveTimer" class="text-[9px] sm:text-[10px] tracking-wider text-rose-300/80 font-mono">已相伴计算中...</p>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       VIEWPORT 2: Glassmorphism Storyline & Chronological Space
+       ========================================================================= -->
+  <section id="viewportStoryline" class="mode-viewport hidden-view overflow-y-auto">
+    <div class="min-h-full w-full max-w-5xl mx-auto px-5 pt-28 pb-32">
+
+      <!-- Love Counter Hero Section (Double-Bezel Architecture) -->
+      <div class="double-bezel mb-12">
+        <div class="double-bezel-inner p-8 md:p-12 text-center relative overflow-hidden">
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-rose-500/15 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-[11px] font-medium tracking-widest uppercase text-rose-300 mb-4">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+            NEURAL HEARTBEAT TIMER
+          </div>
+
+          <h2 id="heroCoupleTitle" class="text-3xl md:text-5xl font-serif font-bold text-white tracking-wide mb-3">
+            Leo & Mia
+          </h2>
+          <p id="heroQuote" class="text-sm md:text-base text-zinc-400 font-serif italic max-w-xl mx-auto mb-8">
+            "跨越星河与时间的羁绊，唯有你是我唯一的锚点。"
+          </p>
+
+          <!-- Precision Milestone Counter Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
+            <div class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 backdrop-blur-md shadow-inner">
+              <span id="timerDays" class="text-3xl sm:text-4xl font-bold font-mono gradient-text-love">00</span>
+              <p class="text-[10px] uppercase tracking-widest text-zinc-500 mt-1 font-mono">Days</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 backdrop-blur-md shadow-inner">
+              <span id="timerHours" class="text-3xl sm:text-4xl font-bold font-mono text-zinc-200">00</span>
+              <p class="text-[10px] uppercase tracking-widest text-zinc-500 mt-1 font-mono">Hours</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 backdrop-blur-md shadow-inner">
+              <span id="timerMinutes" class="text-3xl sm:text-4xl font-bold font-mono text-zinc-200">00</span>
+              <p class="text-[10px] uppercase tracking-widest text-zinc-500 mt-1 font-mono">Minutes</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 backdrop-blur-md shadow-inner">
+              <span id="timerSeconds" class="text-3xl sm:text-4xl font-bold font-mono text-rose-400">00</span>
+              <p class="text-[10px] uppercase tracking-widest text-zinc-500 mt-1 font-mono">Seconds</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vinyl Turntable Player Section -->
+      <div class="double-bezel mb-16">
+        <div class="double-bezel-inner p-6 md:p-8 flex flex-col md:flex-row items-center gap-8 justify-between">
+          <div class="flex items-center gap-6">
+            <!-- Vinyl Turntable Graphic -->
+            <div class="vinyl-container">
+              <div id="vinylDisc" class="vinyl-disc cursor-pointer" title="点击播放/暂停音乐">
+                <div class="vinyl-center-label">
+                  <span class="text-white text-xs font-serif font-bold">♥</span>
+                </div>
+              </div>
+              <svg id="vinylTonearm" class="vinyl-tonearm" viewBox="0 0 50 80">
+                <circle cx="38" cy="10" r="7" fill="#52525b" stroke="#71717a" stroke-width="2"/>
+                <path d="M 38 10 L 25 55 L 15 70" stroke="#d4d4d8" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <rect x="8" y="66" width="14" height="8" rx="2" fill="#f43f5e"/>
+              </svg>
+            </div>
+
+            <div>
+              <span class="text-[10px] tracking-widest uppercase text-rose-400 font-mono">BGM Player · 经典民谣</span>
+              <h3 class="text-lg md:text-xl font-serif font-bold text-white mt-0.5">陈鸿宇 · 理想三旬</h3>
+              <p class="text-xs text-zinc-400 mt-1">"雨后有车驶来，驶过暮色苍白，时光深处的温柔与你"</p>
+            </div>
+          </div>
+
+          <!-- Button-in-Button Nested Architecture Play Button -->
+          <button id="musicToggleBtn" class="btn-nested">
+            <span class="text-xs font-medium tracking-wide">播放《理想三旬》</span>
+            <div class="btn-nested-icon text-rose-400 text-xs">
+              ▶
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Parallax Asymmetric Bento Grid (Memory Highlights) -->
+      <div class="mb-12">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h3 class="text-2xl font-serif font-bold text-white">时光长廊・心动篇章</h3>
+            <p class="text-xs text-zinc-400 mt-1">每一段回忆，都是生命里最闪光的珍宝</p>
+          </div>
+          <span class="text-xs text-zinc-500 font-mono">ARCHIVE / 2023 - 2026</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-2 double-bezel group cursor-pointer" onclick="if(window.eternalApp) window.eternalApp.showArtworkModal(window.eternalApp.state.photos[0]);">
+            <div class="double-bezel-inner p-6 flex flex-col justify-between h-72 relative overflow-hidden">
+              <img src="assets/photos/photo_001_202212.jpg" alt="Milestone" class="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:scale-105 transition-transform duration-700 pointer-events-none" />
+              <div class="secure-img-shield"></div>
+              <div class="relative z-10 flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-mono border border-rose-500/30">FIRST MET · 2022-12</span>
+                <span class="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[10px] text-zinc-300 border border-white/10">🔍 轻触全屏大图</span>
+              </div>
+              <div>
+                <h4 class="relative z-10 text-xl font-serif font-bold text-white mb-2">第一次遇见你的那个冬天</h4>
+                <p class="relative z-10 text-xs text-zinc-300 font-serif italic max-w-md">"世界上有那么多城镇，城镇有那么多酒馆，而你偏偏走进了我的世界。"</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="double-bezel group cursor-pointer" onclick="if(window.eternalApp) window.eternalApp.showArtworkModal(window.eternalApp.state.photos[1]);">
+            <div class="double-bezel-inner p-6 flex flex-col justify-between h-72 relative overflow-hidden">
+              <img src="assets/photos/photo_002_202212.jpg" alt="Travel" class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700 pointer-events-none" />
+              <div class="secure-img-shield"></div>
+              <div class="relative z-10 flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono border border-purple-500/30">MEMORIES</span>
+                <span class="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[10px] text-zinc-300 border border-white/10">🔍 轻触全屏大图</span>
+              </div>
+              <div>
+                <h4 class="relative z-10 text-xl font-serif font-bold text-white mb-2">漫天星河下的执手</h4>
+                <p class="relative z-10 text-xs text-zinc-300 font-serif italic">潮起潮落，日升月暮，唯爱永恒。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- Dynamic Monthly Timeline Chapters (2022 - 2024) -->
+      <div id="storylineMonthsContainer" class="space-y-12 mb-20"></div>
+
+      <!-- =====================================================================
+           CLIMAX FINALE: 3D Quantum Neon Crystal Heart & Memory Summary Letter
+           ===================================================================== -->
+      <div class="pt-8 pb-16 text-center">
+        <!-- Section Eyebrow Tag -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-[11px] font-mono tracking-widest uppercase text-rose-300 mb-4">
+          <span>♥</span>
+          <span>ETERNAL CLIMAX</span>
+          <span>♥</span>
+        </div>
+
+        <h3 class="text-3xl md:text-4xl font-serif font-bold text-white mb-2">永恒心动・量子水晶爱心</h3>
+        <p class="text-xs md:text-sm text-zinc-400 font-serif italic mb-6">"轻触爱心，引爆专属你的全屏心动粒子风暴"</p>
+
+        <!-- 3D Holographic Quantum Heart Canvas Container -->
+        <div class="relative w-80 h-80 mx-auto mb-10 flex items-center justify-center">
+          <div class="absolute inset-0 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <canvas id="quantumHeartCanvas" class="w-80 h-80 relative z-10 cursor-pointer" title="轻触引发心动冲击波"></canvas>
+        </div>
+
+        <!-- The Concluding Love Letter & Memory Summary -->
+        <div class="double-bezel max-w-3xl mx-auto text-left">
+          <div class="double-bezel-inner p-8 md:p-12 relative overflow-hidden bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-900/90 border border-amber-500/20">
+            <!-- Decorative Border Accent -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between border-b border-white/10 pb-5 mb-8">
+              <div>
+                <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-300/80">MEMORY SUMMARY</span>
+                <h4 class="text-2xl font-serif font-bold text-white mt-1">时光长卷・致我们的两载春秋</h4>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 text-lg">
+                ♥
+              </div>
+            </div>
+
+            <!-- Emotional Closing Paragraph -->
+            <div class="space-y-4 text-sm md:text-base leading-relaxed text-zinc-300 font-serif italic">
+              <p class="indent-6">
+                从 2022 年春天的第一缕微风，到 2024 年岁月的细水长流。
+              </p>
+              <p class="indent-6">
+                两载春秋，七百多个日日夜夜，两万多个小时的悄然相伴。我们在夏夜的海风中举起过汽水，在初雪的冬夜揣紧过同一个口袋；走过喧嚣繁华的街角，也看过漫天璀璨的晚霞与落日。
+              </p>
+              <p class="indent-6">
+                相册里的数百张照片，记录了你每一个或搞怪、或温柔、或灿烂的笑颜。生活或许常常归于柴米油盐的平淡，但每一个被镜头定格的瞬间，都因为有你的存在而熠熠生辉。
+              </p>
+              <p class="indent-6">
+                回忆是岁月写给我们的温柔长诗，而最好的篇章，永远是相视一笑的明天。谢谢你走进我的生命，愿往后的每一个春夏秋冬，我们依旧手牵着手，走过漫长岁月，直到时光尽头。
+              </p>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-white/10 flex items-end justify-between">
+              <div>
+                <p class="text-xs text-zinc-500 font-mono">2022.02.14 — 2026.10.25 & Beyond</p>
+                <p class="text-xs text-rose-400 font-serif italic mt-1">Forever With You</p>
+              </div>
+              <div class="text-right">
+                <span class="font-serif font-bold text-lg gradient-text-gold tracking-wider">♥ 永远爱你</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       AI Vision HUD & Miniature Monitor
+       ========================================================================= -->
+  <div id="aiHudPill" class="ai-hud-pill cursor-pointer" title="点击开启/关闭摄像头 AI 视觉手势识别">
+    <div id="aiPulseDot" class="ai-pulse-dot">♥</div>
+    <span id="aiStatusText" class="text-xs text-zinc-300 font-mono tracking-wide">AI 视界初始化中...</span>
+  </div>
+
+  <!-- Collapsible AI Camera Video Preview -->
+  <div id="aiVideoWrapper" class="ai-camera-video opacity-0 pointer-events-none">
+    <video id="aiCameraVideo" class="w-full h-full object-cover" playsinline autoplay muted></video>
+    <canvas id="aiCameraCanvas" class="ai-camera-canvas" width="320" height="240"></canvas>
+  </div>
+
+  <!-- Floating Heart Fireworks Toast -->
+  <div id="heartToastBanner" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-2.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-serif font-semibold tracking-wider backdrop-blur-xl shadow-2xl transition-all duration-500 opacity-0 translate-y-4 pointer-events-none">
+    ✨ 接收到心动电波，心形粒子风暴已绽放 ♥
+  </div>
+
+  <!-- =========================================================================
+       Mobile Fullscreen Cinema Lightbox (Anti-Copy + Full-Screen Image Inspection)
+       ========================================================================= -->
+  <div id="artworkModal" class="lightbox-overlay">
+    <!-- Top Action Bar -->
+    <div class="fixed top-4 inset-x-4 z-20 flex items-center justify-between pointer-events-auto">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-white/10 backdrop-blur-md text-xs font-mono text-zinc-300">
+        <span id="modalCounter">01 / 08</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Toggle Pure View (Hide Text) -->
+        <button id="toggleCaptionBtn" class="px-3 py-1.5 rounded-full bg-zinc-900/80 border border-white/10 text-xs font-medium text-zinc-300 hover:text-white backdrop-blur-md transition-all">
+          纯净画报
+        </button>
+
+        <!-- Close Lightbox -->
+        <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-zinc-900/80 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white backdrop-blur-md transition-all">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Image Container with Protected Anti-Download Shield -->
+    <div id="lightboxTouchArea" class="lightbox-img-container">
+      <!-- Left / Right Nav Arrows -->
+      <button id="modalPrevBtn" class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/80 transition-all">
+        ‹
+      </button>
+      <button id="modalNextBtn" class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/80 transition-all">
+        ›
+      </button>
+
+      <!-- The High-Res Photo or Video with Security Shield -->
+      <div class="relative max-w-full max-h-full flex items-center justify-center">
+        <img id="modalImg" src="" alt="Romantic Memory" class="lightbox-img" draggable="false" />
+        <!-- HTML5 Video Player for Video Memories -->
+        <video id="modalVideo" class="lightbox-img hidden" controls playsinline></video>
+        <!-- Transparent Anti-Download Shield (blocks WeChat/Safari long-press save menu) -->
+        <div class="secure-img-shield"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Glass Caption Bar (Collapsible for pure full-screen view) -->
+    <div id="lightboxCaptionBar" class="lightbox-caption-bar">
+      <div class="flex items-center justify-between mb-2">
+        <span id="modalDate" class="text-xs font-mono text-rose-400 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20">2023.05.20</span>
+        <span class="text-[10px] text-zinc-500 font-mono tracking-wider">ETERNAL ECHO ARCHIVE</span>
+      </div>
+      <h3 id="modalTitle" class="text-lg sm:text-xl font-serif font-bold text-white mb-1.5">初遇・星空与海</h3>
+      <p id="modalDesc" class="text-xs sm:text-sm text-zinc-300 font-serif italic leading-relaxed">
+        那天海风很轻，你在逆光中回眸微笑，世界忽然安静下来。
+      </p>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       Customization Slide-Over Drawer (No-Backend Browser Persistence)
+       ========================================================================= -->
+  <div id="drawerBackdrop" class="drawer-backdrop">
+    <div class="drawer-panel p-6 overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+        <div>
+          <h3 class="text-lg font-serif font-bold text-white">专属浪漫定制</h3>
+          <p class="text-xs text-zinc-400">零后端・实时保存在你的浏览器中</p>
+        </div>
+        <button id="closeDrawerBtn" class="text-zinc-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <form id="configForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1.5">男主角名字 / 昵称</label>
+          <input type="text" id="cfgLover1" class="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500" placeholder="例如：Leo" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1.5">女主角名字 / 昵称</label>
+          <input type="text" id="cfgLover2" class="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500" placeholder="例如：Mia" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1.5">相恋纪念日（计时器起始日）</label>
+          <input type="date" id="cfgStartDate" class="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1.5">甜蜜箴言 / 首页标语</label>
+          <textarea id="cfgQuote" rows="2" class="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-rose-500" placeholder="写一句你想对她说的话..."></textarea>
+        </div>
+
+        <div class="pt-2">
+          <label class="block text-xs font-medium text-zinc-300 mb-1.5">添加你们的本地照片</label>
+          <label class="flex flex-col items-center justify-center p-5 rounded-2xl border border-dashed border-white/20 bg-zinc-900/50 hover:bg-zinc-900/80 cursor-pointer transition-colors">
+            <span class="text-2xl mb-1">📷</span>
+            <span class="text-xs text-zinc-400">点击选择或拍照上传（支持多张）</span>
+            <input type="file" id="photoUploadInput" accept="image/*" multiple class="hidden">
+          </label>
+          <p class="text-[10px] text-zinc-500 mt-1">照片直接存入浏览器缓存，不用上传到任何服务器，绝不泄露隐私。</p>
+        </div>
+
+        <div class="pt-4">
+          <button type="submit" class="w-full py-3 rounded-full bg-gradient-to-r from-rose-500 to-purple-600 text-white text-sm font-semibold tracking-wide shadow-lg hover:opacity-95 transition-opacity">
+            保存并立即生效
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       Non-Blocking Floating Welcome Toast (3D Scene is Immediately Moving on Load)
+       ========================================================================= -->
+  <div id="entranceOverlay" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-all duration-700 pointer-events-auto cursor-pointer">
+    <div class="px-5 py-2.5 rounded-full bg-zinc-950/85 border border-rose-500/35 backdrop-blur-xl shadow-[0_0_30px_rgba(244,63,94,0.3)] flex items-center gap-3 hover:scale-105 transition-transform">
+      <span class="text-rose-400 text-sm animate-pulse">♥</span>
+      <span class="text-xs font-serif text-white tracking-wide">3D时光星系已自启动 · 正在播放《理想三旬》</span>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">支持拖拽探索</span>
+    </div>
+  </div>
+
+  <!-- Romantic Interactive Toast -->
+  <div id="toastContainer" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 translate-y-3">
+    <div id="toastMessage" class="px-4 py-2 rounded-full bg-zinc-900/90 border border-white/15 text-xs text-zinc-200 backdrop-blur-md shadow-2xl flex items-center gap-2">
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       CLIMAX MEMORY SUMMARY MODAL (致两载春秋的深情长信 - 毫秒级极速响应)
+       ========================================================================= -->
+  <div id="climaxLetterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200 ease-out">
+    <div id="climaxLetterCard" class="relative w-full max-w-2xl double-bezel transform scale-95 transition-transform duration-200 ease-out">
+      <div class="double-bezel-inner p-7 sm:p-10 relative overflow-hidden bg-gradient-to-b from-zinc-900/95 via-zinc-950 to-zinc-900/95 border border-amber-500/30">
+        <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-300/80">MEMORY SUMMARY 2022 — 2024</span>
+            <h4 class="text-xl sm:text-2xl font-serif font-bold text-white mt-1">时光长卷・致我们的两载春秋</h4>
+          </div>
+          <button id="closeClimaxModalBtn" class="text-zinc-400 hover:text-white text-lg w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="space-y-4 text-xs sm:text-sm leading-relaxed text-zinc-300 font-serif italic max-h-[60vh] overflow-y-auto pr-1">
+          <p class="indent-6">
+            从 2022 年春天的第一缕微风，到 2024 年岁月的细水长流。
+          </p>
+          <p class="indent-6">
+            两载春秋，七百多个日日夜夜，两万多个小时的悄然相伴。我们在夏夜的海风中举起过汽水，在初雪的冬夜揣紧过同一个口袋；走过喧嚣繁华的街角，也看过漫天璀璨的晚霞与落日。
+          </p>
+          <p class="indent-6">
+            相册里的数百张照片，记录了你每一个或搞怪、或温柔、或灿烂的笑颜。生活或许常常归于柴米油盐的平淡，但每一个被镜头定格的瞬间，都因为有你的存在而熠熠生辉。
+          </p>
+          <p class="indent-6">
+            回忆是岁月写给我们的温柔长诗，而最好的篇章，永远是相视一笑的明天。谢谢你走进我的生命，愿往后的每一个春夏秋冬，我们依旧手牵着手，走过漫长岁月，直到时光尽头。
+          </p>
+        </div>
+
+        <div class="mt-8 pt-5 border-t border-white/10 flex items-end justify-between">
+          <div>
+            <p class="text-[10px] sm:text-xs text-zinc-500 font-mono">2022.02.14 — 2026.10.25 & Beyond</p>
+            <p class="text-xs text-rose-400 font-serif italic mt-0.5">Forever With You</p>
+          </div>
+          <div class="text-right">
+            <span class="font-serif font-bold text-base sm:text-lg gradient-text-gold tracking-wider">♥ 永远爱你</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Modules (High-Performance Master Architecture) -->
+  <script src="js/photos-data.js"></script>
+  <script src="js/neural-synapse.js"></script>
+  <script src="js/sphere3d.js"></script>
+  <script src="js/quantum-heart.js"></script>
+  <script src="js/ai-gesture.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
