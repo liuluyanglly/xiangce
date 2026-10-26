@@ -20,3 +20,8 @@ Thumbs.db
 
 # Dependencies
 node_modules/
+
+# Temporary test screenshots
+/screen_*.png
+/verify_*.png
+
