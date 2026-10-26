@@ -137,7 +137,7 @@ img, video, canvas {
   top: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 50;
+  z-index: 80;
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -149,7 +149,10 @@ img, video, canvas {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   max-width: calc(100vw - 2rem);
-}
+
+  pointer-events: auto;}
+
+.nav-tab * { pointer-events: none; }
 
 .nav-tab {
   display: inline-flex;
@@ -447,13 +450,23 @@ img, video, canvas {
   width: 100%;
   height: 100%;
   z-index: 10;
-  transition: opacity 0.6s var(--ease-smooth), visibility 0.6s;
+  transition: opacity 0.5s var(--ease-smooth), visibility 0.5s;
 }
 
+.hidden-view,
 .mode-viewport.hidden-view {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#viewportStoryline:not(.hidden-view) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 30 !important;
+  background: radial-gradient(circle at 50% 15%, rgba(22, 16, 32, 0.95) 0%, rgba(6, 6, 10, 0.98) 100%);
 }
 
 /* ---------------------------------------------------------
@@ -542,9 +555,15 @@ img, video, canvas {
   transition: opacity 0.4s var(--ease-spring);
 }
 
+.lightbox-overlay:not(.active) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 .lightbox-overlay.active {
-  opacity: 1;
-  pointer-events: auto;
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .lightbox-img-container {
@@ -743,4 +762,16 @@ img, video, canvas {
 @keyframes wavePulse {
   0%, 100% { height: 4px; }
   50% { height: 14px; }
+}
+
+
+/* Floating Memory Showcase Dock (Local Cinema) */
+#localShowcaseDock {
+  position: fixed !important;
+  left: 24px !important;
+  bottom: 28px !important;
+  top: auto !important;
+  z-index: 45 !important;
+  width: 330px !important;
+  max-width: calc(100vw - 48px) !important;
 }
