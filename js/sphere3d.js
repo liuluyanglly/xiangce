@@ -38,6 +38,15 @@ class CelestialSphereGallery {
     this.groundMirror = null;
     this.waveProgress = 0;
     this.isWaveDragging = false;
+    this.waveGrid = null;      // 「照片海浪墙」网格参数（自适应窗口）
+    this.wavePanY = 0;         // 竖向拖动平移量
+    this.wavePhase = 0;        // 横向拖动附加相位
+    this.waveNet = null;       // 照片墙上的 3D 神经网络连线
+    this.waveEdges = null;
+    this.carouselBatchIndex = 0;
+    this.carouselBatchSize = 24;
+    this.carouselTotalBatches = 1;
+    this.onCarouselBatchChange = this.options.onCarouselBatchChange || null;
 
     // Central Hologram & Audio Reactive Members
     this.hologramGroup = null;
@@ -62,9 +71,9 @@ class CelestialSphereGallery {
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
 
-    // 1. Scene & Deep Space Fog
+    // 1. Scene & Deep Space Fog (降低雾浓度：照片本体清晰通透，仅远景消隐出层次)
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x030305, 0.00065);
+    this.scene.fog = new THREE.FogExp2(0x030305, 0.00035);
 
     const isMobile = width < 768;
     const isTablet = width >= 768 && width <= 1024;
@@ -122,8 +131,14 @@ class CelestialSphereGallery {
     // 6. Central Holographic Cyber Heart Centerpiece
     this.createCentralHologram();
 
-    // 7. Ambient Stardust Galaxy Field
+    // 6b. Cinematic Rose-Gold Aura Glow & Rising Memory Hearts
+    this.createAuraGlow();
+    this.createRisingHearts();
+
+    // 7. Ambient Stardust Galaxy Field & Neural Cosmos
     this.createStardust();
+    this.createDustLayer();
+    this.createAmbientNeuralWeb();
 
     // 8. Ground Reflection Plane for Carousel
     this.createGroundReflection();
@@ -138,11 +153,12 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   createCentralHologram() {
     this.hologramGroup = new THREE.Group();
-    this.hologramGroup.position.set(0, 30, 0);
+    this.hologramGroup.position.set(0, 25, 0);
+    this.holoBaseScale = 3.4; // 由 layout 依据心形尺度动态校正
 
     // Parametric 3D Wireframe Heart Core
     const heartPoints = [];
-    const segments = 160;
+    const segments = 220;
     for (let i = 0; i <= segments; i++) {
       const t = (i / segments) * Math.PI * 2;
       const x = 16 * Math.pow(Math.sin(t), 3) * 6.5;
@@ -161,14 +177,14 @@ class CelestialSphereGallery {
     this.hologramHeart = new THREE.LineLoop(heartGeo, heartMat);
     this.hologramGroup.add(this.hologramHeart);
 
-    // Inner glowing crystal heart point cloud
+    // Inner glowing crystal heart point cloud (denser volumetric core)
     const innerPoints = [];
-    for (let i = 0; i < 240; i++) {
+    for (let i = 0; i < 620; i++) {
       const t = Math.random() * Math.PI * 2;
-      const r = Math.pow(Math.random(), 0.6);
-      const x = 16 * Math.pow(Math.sin(t), 3) * 5.8 * r;
-      const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 5.8 * r;
-      const z = (Math.random() - 0.5) * 35 * r;
+      const r = Math.pow(Math.random(), 0.55);
+      const x = 16 * Math.pow(Math.sin(t), 3) * 6.0 * r;
+      const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.0 * r;
+      const z = (Math.random() - 0.5) * 46 * Math.sqrt(Math.max(0, 1 - r * r));
       innerPoints.push(new THREE.Vector3(x, y, z));
     }
     const innerGeo = new THREE.BufferGeometry().setFromPoints(innerPoints);
@@ -183,13 +199,13 @@ class CelestialSphereGallery {
     this.hologramGroup.add(innerCloud);
 
     // Gyroscope Planetary Orbit Rings
-    const ring1Geo = new THREE.TorusGeometry(125, 1.2, 8, 80);
+    const ring1Geo = new THREE.TorusGeometry(88, 1.2, 8, 96);
     const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.5 });
     this.gyroRing1 = new THREE.Mesh(ring1Geo, ring1Mat);
     this.gyroRing1.rotation.x = Math.PI / 3;
     this.hologramGroup.add(this.gyroRing1);
 
-    const ring2Geo = new THREE.TorusGeometry(140, 1.2, 8, 80);
+    const ring2Geo = new THREE.TorusGeometry(104, 1.2, 8, 96);
     const ring2Mat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.5 });
     this.gyroRing2 = new THREE.Mesh(ring2Geo, ring2Mat);
     this.gyroRing2.rotation.y = Math.PI / 4;
@@ -211,6 +227,70 @@ class CelestialSphereGallery {
     }
 
     this.scene.add(this.hologramGroup);
+  }
+
+  // -------------------------------------------------------------
+  // Cinematic Rose-Gold Aura Glow (Soft Volumetric Bloom Behind Heart)
+  // -------------------------------------------------------------
+  createAuraGlow() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 512; cvs.height = 512;
+    const ctx = cvs.getContext('2d');
+    const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+    g.addColorStop(0.00, 'rgba(255, 148, 178, 0.62)');
+    g.addColorStop(0.16, 'rgba(244, 63, 94, 0.34)');
+    g.addColorStop(0.42, 'rgba(168, 85, 247, 0.16)');
+    g.addColorStop(0.70, 'rgba(79, 70, 229, 0.06)');
+    g.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 512, 512);
+
+    const tex = new THREE.CanvasTexture(cvs);
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: true,
+      opacity: 0.95
+    });
+    this.auraSprite = new THREE.Sprite(mat);
+    this.auraSprite.position.set(0, 25, -40);
+    this.auraSprite.scale.set(2400, 2400, 1);
+    this.scene.add(this.auraSprite);
+  }
+
+  // -------------------------------------------------------------
+  // Rising Memory Hearts (浪漫上升的心形光尘)
+  // -------------------------------------------------------------
+  createRisingHearts() {
+    const n = 110;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3);
+    const seeds = [];
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 180 + Math.random() * 940;
+      pos[i * 3]     = Math.cos(a) * r;
+      pos[i * 3 + 1] = -700 + Math.random() * 1800;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 1000;
+      seeds.push({ speed: 0.55 + Math.random() * 1.15, sway: Math.random() * Math.PI * 2 });
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+    const tex = this.createHeartTexture();
+    const mat = new THREE.PointsMaterial({
+      size: 34,
+      map: tex,
+      color: 0xffa0b8,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    this.risingHearts = new THREE.Points(geo, mat);
+    this.risingHearts.userData.seeds = seeds;
+    this.scene.add(this.risingHearts);
   }
 
   // -------------------------------------------------------------
@@ -335,6 +415,214 @@ class CelestialSphereGallery {
 
     this.starField = new THREE.Points(geometry, material);
     this.scene.add(this.starField);
+  }
+
+  // -------------------------------------------------------------
+  // 近景悬浮光尘粒子层（营造唯美的空间微粒与空气感）
+  // -------------------------------------------------------------
+  createDustLayer() {
+    const n = 1400;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3);
+    const seeds = [];
+    for (let i = 0; i < n; i++) {
+      pos[i * 3]     = (Math.random() - 0.5) * 3000;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 2200;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 2400;
+      seeds.push({ drift: 0.25 + Math.random() * 0.7, sway: Math.random() * Math.PI * 2 });
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+    // 柔光圆点贴图
+    const cvs = document.createElement('canvas');
+    cvs.width = cvs.height = 64;
+    const ctx = cvs.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(255,210,225,0.55)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(cvs);
+
+    const mat = new THREE.PointsMaterial({
+      size: 16,
+      map: tex,
+      color: 0xffd9e6,
+      transparent: true,
+      opacity: 0.5,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    this.dustLayer = new THREE.Points(geo, mat);
+    this.dustLayer.userData.seeds = seeds;
+    this.scene.add(this.dustLayer);
+  }
+
+  // -------------------------------------------------------------
+  // Ambient 3D Neural Cosmos（宇宙级脑神经网络穹顶 + 沿突触流动的电信号）
+  // -------------------------------------------------------------
+  createAmbientNeuralWeb() {
+    const NODE_COUNT = 190;
+    const nodes = [];
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < NODE_COUNT; i++) {
+      const y = 1 - (i / (NODE_COUNT - 1)) * 2;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = i * golden;
+      const radius = 2400 + Math.random() * 1000;
+      nodes.push(new THREE.Vector3(
+        Math.cos(theta) * r * radius,
+        y * radius * 0.78,
+        Math.sin(theta) * r * radius
+      ));
+    }
+    this.netNodes = nodes;
+
+    // 每个节点连接最近的 2 个邻居 → 形成自然的突触网络
+    const edges = [];
+    const seen = new Set();
+    for (let i = 0; i < nodes.length; i++) {
+      const dists = [];
+      for (let j = 0; j < nodes.length; j++) {
+        if (i === j) continue;
+        dists.push([nodes[i].distanceToSquared(nodes[j]), j]);
+      }
+      dists.sort((a, b) => a[0] - b[0]);
+      for (let k = 0; k < 2; k++) {
+        const j = dists[k][1];
+        const key = i < j ? `${i}_${j}` : `${j}_${i}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        edges.push([i, j]);
+      }
+    }
+    this.netEdges = edges;
+
+    // 突触连线
+    const lineGeo = new THREE.BufferGeometry();
+    const lp = new Float32Array(edges.length * 6);
+    const lc = new Float32Array(edges.length * 6);
+    edges.forEach((e, k) => {
+      const a = nodes[e[0]], b = nodes[e[1]];
+      lp.set([a.x, a.y, a.z, b.x, b.y, b.z], k * 6);
+      const warm = Math.random() > 0.45;
+      const c0 = warm ? [0.98, 0.42, 0.62] : [0.42, 0.72, 1.0];
+      lc.set([c0[0], c0[1], c0[2], c0[0] * 0.55, c0[1] * 0.55, c0[2] * 0.6], k * 6);
+    });
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(lp, 3));
+    lineGeo.setAttribute('color', new THREE.BufferAttribute(lc, 3));
+    this.neuralLines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.30,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    }));
+
+    // 神经元节点光点
+    const nodeGeo = new THREE.BufferGeometry();
+    const np = new Float32Array(nodes.length * 3);
+    nodes.forEach((v, i) => np.set([v.x, v.y, v.z], i * 3));
+    nodeGeo.setAttribute('position', new THREE.BufferAttribute(np, 3));
+    this.neuralNodes = new THREE.Points(nodeGeo, new THREE.PointsMaterial({
+      size: 30,
+      color: 0xffc2d4,
+      transparent: true,
+      opacity: 0.62,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    }));
+
+    this.neuralGroup = new THREE.Group();
+    this.neuralGroup.add(this.neuralLines);
+    this.neuralGroup.add(this.neuralNodes);
+    this.scene.add(this.neuralGroup);
+
+    // 沿突触奔跑的电信号脉冲
+    const PULSES = 16;
+    const pulseGeo = new THREE.BufferGeometry();
+    pulseGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PULSES * 3), 3));
+    this.neuralPulses = new THREE.Points(pulseGeo, new THREE.PointsMaterial({
+      size: 46,
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    }));
+    this.pulseState = [];
+    for (let i = 0; i < PULSES; i++) {
+      this.pulseState.push({
+        edge: Math.floor(Math.random() * edges.length),
+        t: Math.random(),
+        speed: 0.004 + Math.random() * 0.008
+      });
+    }
+    this.neuralGroup.add(this.neuralPulses);
+  }
+
+  // -------------------------------------------------------------
+  // 「时光波浪」照片海浪墙网格（自适应窗口尺寸，保证 553 张全部在画面内）
+  // -------------------------------------------------------------
+  computeWaveGrid() {
+    const n = Math.max(1, this.photoMeshes.length);
+    const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
+    const fov = this.camera ? this.camera.fov : 54;
+    const aspect = this.camera ? this.camera.aspect : 1.7;
+
+    // 依据视口长宽比求解最优行列数，让照片矩阵恰好铺满画面（任何一种屏幕都不浪费空间）
+    const targetRatio = Math.max(0.45, Math.min(3.2, 1.2125 * aspect)); // cols / rows
+    let rows = Math.max(6, Math.round(Math.sqrt(n / targetRatio)));
+    let cols = Math.max(4, Math.round(rows * targetRatio));
+    let guard = 0;
+    while (cols * rows < n && guard < 400) {
+      rows++;
+      cols = Math.max(4, Math.min(48, Math.round(rows * targetRatio)));
+      guard++;
+    }
+    cols = Math.max(4, Math.min(48, cols));
+
+    const cardW = isMobile ? 115 : 110;
+    const camZ = 1560;
+    const visH = 2 * camZ * Math.tan(fov * Math.PI / 360);
+    const visW = visH * aspect;
+
+    // 卡片宽 cw：同时受横向排布与纵向排布约束，取较小值即可完整入画
+    const cw = Math.min(0.94 * visW / (cols * 1.22), 0.92 * visH / (rows * 1.4795));
+    return {
+      cols, rows, cardW, camZ, isMobile, visH, visW,
+      scale: cw / cardW,
+      dx: cw * 1.22,
+      dy: cw * 1.4795,
+      wallH: rows * cw * 1.4795,
+      wallW: cols * cw * 1.22
+    };
+  }
+
+  // -------------------------------------------------------------
+  // 照片墙上的 3D 神经网络（栅格邻接突触，随波浪一起起伏流动）
+  // -------------------------------------------------------------
+  ensureWaveNeuralNet(edges) {
+    if (this.waveNet && this.waveNet.geometry.attributes.position.count === edges.length * 2) {
+      return;
+    }
+    if (this.waveNet) {
+      this.scene.remove(this.waveNet);
+      this.waveNet.geometry.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(edges.length * 6), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(edges.length * 6), 3));
+    this.waveNet = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.42,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    }));
+    this.waveNet.frustumCulled = false;
+    this.scene.add(this.waveNet);
   }
 
   createGroundReflection() {
@@ -492,7 +780,7 @@ class CelestialSphereGallery {
     this.climaxCardMesh = null;
 
     const isMobile = (this.container.clientWidth || window.innerWidth) < 768;
-    const maxMeshes = isMobile ? 56 : 76;
+    const maxMeshes = isMobile ? 560 : 700;
     
     // Ensure the climax memory letter is always present as the concluding special card
     let list = photos.filter(p => p.id !== 'desktop_video_feat' && !p.url?.includes('video_thumb_desktop'));
@@ -520,6 +808,7 @@ class CelestialSphereGallery {
     const cardWidth = isMobile ? 115 : 110;
     const cardHeight = isMobile ? 155 : 148;
     const cardGeo = new THREE.PlaneGeometry(cardWidth, cardHeight);
+    const sharedEdgesGeo = new THREE.EdgesGeometry(cardGeo);
 
     displayPhotos.forEach((item, index) => {
       const frameGroup = new THREE.Group();
@@ -602,20 +891,7 @@ class CelestialSphereGallery {
           this.textureLoader = new THREE.TextureLoader();
         }
         
-        // 100% 真实合影防护：优先精确匹配，未命中则循环分配真实合影，彻底杜绝粉红心形占位图
-        let targetUrl = (window.PHOTO_THUMBS_DATA && window.PHOTO_THUMBS_DATA[item.url]) 
-          ? window.PHOTO_THUMBS_DATA[item.url] 
-          : null;
-
-        if (!targetUrl && window.PHOTO_THUMBS_DATA) {
-          const keys = Object.keys(window.PHOTO_THUMBS_DATA);
-          if (keys.length > 0) {
-            targetUrl = window.PHOTO_THUMBS_DATA[keys[index % keys.length]];
-          }
-        }
-        if (!targetUrl) {
-          targetUrl = item.url;
-        }
+        let targetUrl = item.url;
 
         this.textureLoader.load(
           targetUrl,
@@ -659,7 +935,7 @@ class CelestialSphereGallery {
       frameGroup.add(backMesh);
 
       // Glowing Outer Bezel Frame on Front and Back
-      const edges = new THREE.EdgesGeometry(cardGeo);
+      const edges = sharedEdgesGeo;
       const frameColor = item.isClimaxLetter ? 0xfbbf24 : (item.isVideo ? 0x38bdf8 : 0xffffff);
       const lineMat = new THREE.LineBasicMaterial({
         color: frameColor,
@@ -761,46 +1037,68 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   // Dynamic Shape Layout Switcher with Smooth Camera Fly & Stagger Pop
   // -------------------------------------------------------------
+  setCarouselBatch(batchIdx) {
+    if (this.carouselTotalBatches <= 0) return;
+    this.carouselBatchIndex = (batchIdx + this.carouselTotalBatches) % this.carouselTotalBatches;
+    if (this.currentShape === 'carousel') {
+      this.applyLayout('carousel', false);
+    }
+  }
+
+  nextCarouselBatch() {
+    this.setCarouselBatch(this.carouselBatchIndex + 1);
+  }
+
+  prevCarouselBatch() {
+    this.setCarouselBatch(this.carouselBatchIndex - 1);
+  }
+
   applyLayout(shape, instant = false) {
     this.currentShape = shape;
     const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
     let camTargetX = 0, camTargetY = this.defaultCamY, camTargetZ = this.defaultCamZ;
     let lookTargetX = 0, lookTargetY = 25, lookTargetZ = 0;
 
+    // 「照片海浪墙」需要先算出网格尺度，才能把整面墙完整收进画面
+    if (shape === 'wave') {
+      this.waveGrid = this.computeWaveGrid();
+      this.wavePanY = 0;
+    }
+
     if (shape === 'carousel') {
-      const radius = isMobile ? 560 : 760;
+      const radius = isMobile ? 620 : 860;
       camTargetX = 0;
-      camTargetY = isMobile ? 120 : 150;
-      camTargetZ = radius + (isMobile ? 440 : 580);
+      camTargetY = isMobile ? 85 : 105;
+      camTargetZ = radius + (isMobile ? 380 : 520);
       lookTargetX = 0;
       lookTargetY = 15;
       lookTargetZ = 0;
       if (this.groundMirror) {
-        const mirrorScale = (radius * 1.5) / 880;
+        const mirrorScale = (radius * 1.6) / 880;
         this.groundMirror.scale.set(mirrorScale, mirrorScale, mirrorScale);
         this.groundMirror.position.y = -110;
         this.groundMirror.visible = true;
       }
     } else if (shape === 'wave') {
       camTargetX = 0;
-      camTargetY = isMobile ? 35 : 45;
-      camTargetZ = isMobile ? 780 : 920;
+      camTargetY = 0;
+      camTargetZ = (this.waveGrid && this.waveGrid.camZ) || 1560;
       lookTargetX = 0;
-      lookTargetY = 20;
+      lookTargetY = 0;
       lookTargetZ = 0;
       if (this.groundMirror) this.groundMirror.visible = false;
     } else if (shape === 'heart') {
-      camTargetX = 160;
-      camTargetY = 95;
-      camTargetZ = 1080;
+      camTargetX = 0;
+      camTargetY = isMobile ? 40 : 55;
+      camTargetZ = isMobile ? 1380 : 1420;
       lookTargetX = 0;
-      lookTargetY = 30;
+      lookTargetY = 25;
       lookTargetZ = 0;
       if (this.groundMirror) this.groundMirror.visible = false;
     } else if (shape === 'sphere') {
       camTargetX = 0;
       camTargetY = isMobile ? 30 : 40;
-      camTargetZ = isMobile ? 1150 : 1350;
+      camTargetZ = isMobile ? 1550 : 1880;
       lookTargetX = 0;
       lookTargetY = 0;
       lookTargetZ = 0;
@@ -826,10 +1124,12 @@ class CelestialSphereGallery {
         this.controls.autoRotate = true;
         this.controls.autoRotateSpeed = 0.52;
       } else if (shape === 'wave') {
-        this.controls.minPolarAngle = Math.PI * 0.20;
-        this.controls.maxPolarAngle = Math.PI * 0.80;
-        this.controls.autoRotate = false; // 由波浪轮播传送带自身驱动流转
+        this.controls.minPolarAngle = Math.PI * 0.5;
+        this.controls.maxPolarAngle = Math.PI * 0.5;
+        this.controls.enableRotate = false; // 由拖拽平移控制观感，避免镜头乱转
+        this.controls.autoRotate = false;
       } else {
+        this.controls.enableRotate = true;
         this.controls.minPolarAngle = Math.PI * 0.18;
         this.controls.maxPolarAngle = Math.PI * 0.78;
         this.controls.autoRotate = true;
@@ -860,6 +1160,16 @@ class CelestialSphereGallery {
 
     const targets = this.calculateTargets(shape);
 
+    // 全息心脏 / 玫瑰金光晕：仅在「3D立体爱心」与「记忆星球」中作为核心登场
+    const coreOn = (shape === 'heart' || shape === 'sphere');
+    if (this.hologramGroup) this.hologramGroup.visible = coreOn;
+    if (this.auraSprite) this.auraSprite.visible = (shape === 'heart' || shape === 'wave');
+    if (this.risingHearts) this.risingHearts.visible = (shape === 'heart' || shape === 'wave');
+    if (this.waveNet) this.waveNet.visible = (shape === 'wave');
+
+    // 波浪模式由 animate() 逐帧驱动，禁止 GSAP 与之抢夺 transform
+    const instantMesh = instant || shape === 'wave' || typeof gsap === 'undefined';
+
     this.photoMeshes.forEach((mesh, index) => {
       const target = targets[index % targets.length];
       if (!target) return;
@@ -878,7 +1188,7 @@ class CelestialSphereGallery {
       mesh.userData.baseScale = targetScale;
       mesh.userData.currentScale = targetScale;
 
-      if (instant || typeof gsap === 'undefined') {
+      if (instantMesh) {
         mesh.userData.isAnimating = false;
         mesh.position.copy(target.pos);
         mesh.rotation.copy(target.rot);
@@ -932,155 +1242,251 @@ class CelestialSphereGallery {
     const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
 
     if (shape === 'heart') {
-      // Style 1: True 3D Volumetric Heart (Three Layers with normal curvature & deep Z-depth)
-      const outerCount = Math.floor(count * 0.48);
-      const midCount = Math.floor(count * 0.34);
-      const innerCount = count - outerCount - midCount;
+      // ============================================================
+      // Style 1: 全量照片 · 真 3D 立体「心之宇宙」
+      //   · 内层：多壳层同心心形轮廓（照片沿心形曲线铺排，形成通透立体的心形雕塑）
+      //   · 核心：全息发光心脏 + 玫瑰金光晕 + 上升心形光尘
+      //   · 外层：倾斜的记忆星环（其余照片化作环绕的星河光带）
+      // ============================================================
+      const isM = isMobile;
+      const S  = isM ? 20 : 40;                 // 心形基准尺度（x 半宽 = 16S）
+      const D  = (isM ? 0.56 : 0.60) * 16 * S;  // 纵深半厚（真正的 3D 体积感）
+      const K  = isM ? 5 : 7;                   // 壳层数
+      const radii = isM ? [1.0, 0.60] : [1.0, 0.68]; // 每层两道同心轮廓
+      const yOff = 25 + 2.5 * S;                // 心形视觉重心对齐到世界 y=25
 
-      for (let i = 0; i < count; i++) {
-        // Special Climax Letter Card (last item) placed right at front bottom apex
-        if (i === count - 1) {
-          const pos = new THREE.Vector3(0, -90, 240);
-          const rot = new THREE.Euler(-0.08, 0, 0);
-          targets.push({ pos, rot, isClimax: true, targetScale: 1.05 });
-          continue;
+      // ---- 1. 构建壳层/轮廓描述符（权重 ∝ 周长，保证照片间距均匀） ----
+      const rings = [];
+      let wSum = 0;
+      for (let k = 0; k < K; k++) {
+        const phi = Math.PI * (0.16 + 0.68 * (K > 1 ? k / (K - 1) : 0.5));
+        const sp = Math.sin(phi);
+        const zc = D * Math.cos(phi);
+        for (let ri = 0; ri < radii.length; ri++) {
+          const rf = radii[ri];
+          const w = sp * rf;
+          rings.push({ phi, sp, rf, z: zc * (0.46 + 0.54 * rf), w });
+          wSum += w;
         }
-
-        let t, scale, zOffset, rotX, rotY, rotZ;
-        if (i < outerCount) {
-          t = (i / outerCount) * Math.PI * 2;
-          scale = isMobile ? 26 : 34;
-          zOffset = Math.sin(t) * 160 + Math.cos(t * 2) * 90;
-          rotY = (Math.sin(t) > 0 ? -0.48 : 0.48) * Math.min(1.0, Math.abs(Math.sin(t) * 1.4));
-          rotX = -Math.cos(t) * 0.35;
-          rotZ = Math.sin(t) * 0.12;
-        } else if (i < outerCount + midCount) {
-          const idx = i - outerCount;
-          t = (idx / midCount) * Math.PI * 2;
-          scale = isMobile ? 18 : 23;
-          zOffset = 70 + Math.sin(t * 2) * 120;
-          rotY = (Math.sin(t) > 0 ? -0.32 : 0.32) * Math.abs(Math.sin(t));
-          rotX = -Math.cos(t) * 0.25;
-          rotZ = Math.sin(t) * 0.08;
-        } else {
-          const idx = i - outerCount - midCount;
-          t = (idx / innerCount) * Math.PI * 2;
-          scale = isMobile ? 11 : 14;
-          zOffset = 160 + Math.cos(t * 3) * 60;
-          rotY = 0;
-          rotX = 0;
-          rotZ = 0;
-        }
-
-        const x = 16 * Math.pow(Math.sin(t), 3) * scale;
-        const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * scale + 30;
-        const z = zOffset;
-
-        const pos = new THREE.Vector3(x, y, z);
-        const rot = new THREE.Euler(rotX, rotY, rotZ);
-
-        targets.push({ pos, rot, targetScale: 1.0 });
       }
-    } else if (shape === 'wave') {
-      // Style 2: 3D 流光轮播图传送带（展示一个，划到后面，首尾相接无限循环展示）
-      const maxWaveCards = isMobile ? 10 : 12;
-      const step = Math.max(1, Math.floor(count / maxWaveCards));
-      let waveIndex = 0;
 
-      for (let i = 0; i < count; i++) {
-        const isInWave = (i % step === 0) && (waveIndex < maxWaveCards);
-        if (isInWave) {
-          const delta = ((waveIndex / maxWaveCards) - 0.5) * 2;
-          const spanX = isMobile ? 780 : 1180;
-          const x = Math.sin(delta * Math.PI) * spanX * 0.5;
-          const frontZ = 280;
-          const backZ = -220;
-          const z = ((Math.cos(delta * Math.PI) + 1) * 0.5) * (frontZ - backZ) + backZ;
-          const y = Math.sin(delta * Math.PI * 2) * (isMobile ? 35 : 55) + 20;
-          const rotY = -Math.sin(delta * Math.PI) * 0.45;
-          const rotZ = Math.cos(delta * Math.PI * 2) * 0.05;
+      // ---- 2. 计算心形本体承载的照片数量 ----
+      const climaxIdx = this.photoMeshes.findIndex(m => m.userData.isClimaxLetter);
+      const normalCount = count - (climaxIdx >= 0 ? 1 : 0);
+      const heartCount = Math.max(0, Math.min(normalCount, isM ? 120 : 320));
 
-          const isCenter = Math.abs(delta) < 0.16;
-          const distFromCenter = Math.min(1.0, Math.abs(delta) * 1.8);
-          const scale = isCenter ? (isMobile ? 1.20 : 1.35) : Math.max(0.65, 1.0 - distFromCenter * 0.28);
+      const ringCounts = rings.map(r => Math.max(3, Math.round(heartCount * r.w / wSum)));
+      let drift = heartCount - ringCounts.reduce((a, b) => a + b, 0);
+      let guard = 0;
+      while (drift !== 0 && guard < 5000) {
+        const idx = guard % ringCounts.length;
+        const step = drift > 0 ? 1 : -1;
+        if (ringCounts[idx] + step >= 3) { ringCounts[idx] += step; drift -= step; }
+        guard++;
+      }
 
-          targets.push({
-            pos: new THREE.Vector3(x, y, z),
-            rot: new THREE.Euler(0, rotY, rotZ),
-            inWave: true,
-            waveIndex: waveIndex,
+      // ---- 3. 预生成心形本体的全部槽位 ----
+      const heartSlots = [];
+      rings.forEach((ring, rIdx) => {
+        const n = ringCounts[rIdx];
+        const hScale = S * ring.sp * ring.rf;
+        const phase = rIdx * 2.39996; // 黄金角错位，杜绝层层对齐呆板
+        for (let j = 0; j < n; j++) {
+          const t = (j / n) * Math.PI * 2 + phase;
+          const hx = 16 * Math.pow(Math.sin(t), 3) * hScale;
+          const hy = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * hScale + yOff;
+          const hz = ring.z;
+
+          // 卡片朝向：沿心形外法线微微外翻，形成雕塑般的立体感（但不至于看不见正面）
+          const lenXZ = Math.hypot(hx, hz) || 1;
+          const rotY = Math.atan2(hx, hz) * 0.55;
+          const rotX = -Math.atan2(hy - yOff, lenXZ) * 0.22;
+          const rotZ = Math.sin(t) * 0.045;
+
+          const scale = (isM ? 0.82 : 0.98) * (0.86 + 0.20 * ring.sp) * (0.88 + 0.12 * ring.rf);
+
+          heartSlots.push({
+            pos: new THREE.Vector3(hx, hy, hz),
+            rot: new THREE.Euler(rotX, rotY, rotZ),
             targetScale: scale
           });
-          waveIndex++;
-        } else {
-          // 其余卡片优雅退入深空背景深处，绝不产生视觉干扰
-          const idleTheta = (i / count) * Math.PI * 2;
+        }
+      });
+
+      // ---- 4. 预生成外围记忆星环的全部槽位 ----
+      const galaxyCount = Math.max(0, normalCount - heartCount);
+      const lanes = 3;
+      const galaxySlots = [];
+      for (let j = 0; j < galaxyCount; j++) {
+        const lane = j % lanes;
+        const perLane = Math.max(1, Math.ceil(galaxyCount / lanes));
+        const t = Math.floor(j / lanes) / perLane;
+        const radius = (isM ? 1150 : 1680) + lane * (isM ? 175 : 235);
+        const angle = t * Math.PI * 2 + lane * 0.42 + Math.sin(t * Math.PI * 6) * 0.05;
+        const tilt = Math.PI * 0.17; // 30° 宇宙倾角的星环
+
+        const rawX = Math.cos(angle) * radius;
+        const rawZ = Math.sin(angle) * radius;
+        const rawY = Math.sin(angle * 3 + lane * 1.1) * (isM ? 58 : 92);
+
+        galaxySlots.push({
+          pos: new THREE.Vector3(
+            rawX,
+            rawY * Math.cos(tilt) - rawZ * Math.sin(tilt) + 20,
+            rawY * Math.sin(tilt) + rawZ * Math.cos(tilt)
+          ),
+          rot: new THREE.Euler(tilt, -angle + Math.PI * 0.5, 0),
+          targetScale: isM ? 0.30 : 0.40
+        });
+      }
+
+      // ---- 5. 分配到每一张照片 ----
+      let nIdx = 0;
+      for (let i = 0; i < count; i++) {
+        if (i === climaxIdx) {
+          // 回忆长信金卡：悬于心尖正前下方，如同一枚珍贵的吊坠
           targets.push({
-            pos: new THREE.Vector3(Math.sin(idleTheta) * 100, -900, -1200),
-            rot: new THREE.Euler(0, idleTheta, 0),
-            inWave: false,
-            waveIndex: -1,
+            pos: new THREE.Vector3(0, yOff - 9.2 * S, D + 250),
+            rot: new THREE.Euler(-0.04, 0, 0),
+            isClimax: true,
+            targetScale: isM ? 1.20 : 1.38
+          });
+          continue;
+        }
+        const slot = (nIdx < heartCount) ? heartSlots[nIdx] : galaxySlots[nIdx - heartCount];
+        nIdx++;
+        if (!slot) {
+          targets.push({
+            pos: new THREE.Vector3(0, -9999, -2500),
+            rot: new THREE.Euler(0, 0, 0),
             targetScale: 0.001
           });
+          continue;
         }
+        targets.push({
+          pos: slot.pos.clone(),
+          rot: slot.rot.clone(),
+          targetScale: slot.targetScale
+        });
       }
-    } else if (shape === 'carousel') {
-      // Style 3: 3D Fashion Gallery 时光回廊 - 奢华环形展厅与镜面倒影（完全零重叠、宽裕间距、精致尺寸）
-      const maxRingCards = isMobile ? 18 : 22;
-      const radius = isMobile ? 560 : 760;
-      const step = Math.max(1, Math.floor(count / maxRingCards));
-      let ringIndex = 0;
+
+      // 同步全息核心与光晕的尺度，使之内嵌于照片心形之中
+      this.holoBaseScale = (16 * S * 0.54) / 104;
+      this.auraBaseSize = 16 * S * 4.6;
+      if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
+    } else if (shape === 'wave') {
+      // ============================================================
+      // Style 2: 「照片海浪墙」— 553 张照片全部同时在场
+      //   一张铺满视野的照片矩阵，三层正弦叠加成流动丝绸，
+      //   卡片沿曲面法线倾斜，并以 3D 神经网络突触相连，随波光一起呼吸
+      // ============================================================
+      this.auraBaseSize = isMobile ? 1472 : 2944;
+      const g = this.computeWaveGrid();
+      this.waveGrid = g;
+      this.wavePanY = 0;
 
       for (let i = 0; i < count; i++) {
-        const isOnRing = (i % step === 0) && (ringIndex < maxRingCards);
-        if (isOnRing) {
-          const theta = (ringIndex / maxRingCards) * Math.PI * 2;
+        const col = i % g.cols;
+        const row = Math.floor(i / g.cols);
+        targets.push({
+          pos: new THREE.Vector3(
+            (col - (g.cols - 1) / 2) * g.dx,
+            ((g.rows - 1) / 2 - row) * g.dy,
+            0
+          ),
+          rot: new THREE.Euler(0, 0, 0),
+          inWave: true,
+          waveIndex: i,
+          targetScale: g.scale
+        });
+      }
+
+      // 构建照片墙的栅格邻接突触（横 + 纵）
+      const edges = [];
+      for (let i = 0; i < count; i++) {
+        const col = i % g.cols;
+        if (col + 1 < g.cols && i + 1 < count) edges.push([i, i + 1]);
+        if (i + g.cols < count) edges.push([i, i + g.cols]);
+      }
+      this.waveGridEdges = edges;
+      this.ensureWaveNeuralNet(edges);
+    } else if (shape === 'carousel') {
+      // Style 3: 奢华时尚艺术展厅回廊 (主回廊 36 张舒展通透巨幅画卷，镜面倒影，分组流转)
+      const batchSize = isMobile ? 24 : 36;
+      this.carouselBatchSize = batchSize;
+      this.carouselTotalBatches = Math.max(1, Math.ceil(count / batchSize));
+
+      const radius = isMobile ? 660 : 900;
+      const startIdx = this.carouselBatchIndex * batchSize;
+      const endIdx = Math.min(count, startIdx + batchSize);
+
+      for (let i = 0; i < count; i++) {
+        if (i >= startIdx && i < endIdx) {
+          // 当前活跃批次的 24 张照片：立于主回廊黄金环线上
+          const slot = i - startIdx;
+          const currentBatchCount = endIdx - startIdx;
+          const theta = (slot / currentBatchCount) * Math.PI * 2;
           const x = radius * Math.sin(theta);
-          const y = 0;
           const z = radius * Math.cos(theta);
+          const y = 15;
 
           const pos = new THREE.Vector3(x, y, z);
-          // 卡片正面直对圆环外圈（正对相机观赏区）
+          // 卡片正对圆周切线朝向外部观赏视角
           const rot = new THREE.Euler(0, theta, 0);
 
           targets.push({
             pos,
             rot,
             inCarousel: true,
-            targetScale: isMobile ? 0.90 : 1.0
+            targetScale: isMobile ? 0.98 : 1.15
           });
-          ringIndex++;
         } else {
-          // 其余卡片优雅收拢并渐隐于圆心深处，保证主环通透纯净
-          const idleTheta = (i / count) * Math.PI * 2;
-          const pos = new THREE.Vector3(Math.sin(idleTheta) * 80, -400, Math.cos(idleTheta) * 80);
-          const rot = new THREE.Euler(0, idleTheta, 0);
+          // 非当前批次的照片：静止收拢在深空背景，绝不杂乱堆叠！
           targets.push({
-            pos,
-            rot,
+            pos: new THREE.Vector3(0, -9999, -1500),
+            rot: new THREE.Euler(0, 0, 0),
             inCarousel: false,
             targetScale: 0.001
           });
         }
       }
+
+      // 通知外部 UI 控制器更新批次标签
+      if (typeof this.onCarouselBatchChange === 'function') {
+        this.onCarouselBatchChange({
+          batchIndex: this.carouselBatchIndex,
+          totalBatches: this.carouselTotalBatches,
+          batchSize: this.carouselBatchSize,
+          batchCount: endIdx - startIdx,
+          totalCount: count
+        });
+      }
     } else if (shape === 'sphere') {
-      // Style 4: 3D Fibonacci Memory Planet
-      const radius = isMobile ? 460 : 580;
+      // Style 4: 553 张全量照片 · 巨型斐波那契记忆星球 (半径 1420px，纵向正立，零翻转，零倒挂)
+      const radius = isMobile ? 1050 : 1420;
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5077度 黄金角
+
       for (let i = 0; i < count; i++) {
-        const phi = Math.acos(-1 + (2 * i) / count);
-        const theta = Math.sqrt(count * Math.PI) * phi;
-        const x = radius * Math.cos(theta) * Math.sin(phi);
-        const y = radius * Math.sin(theta) * Math.sin(phi);
-        const z = radius * Math.cos(phi);
+        // Y 轴作为纵向垂直轴，取值范围控制在 -0.85R 到 +0.85R，彻底杜绝极点翻转与倒挂
+        const y = ((i * 2 + 1) / count - 1) * 0.85 * radius;
+        const rAtY = Math.sqrt(Math.max(0, radius * radius - y * y));
+        const theta = i * goldenAngle;
+        const x = Math.cos(theta) * rAtY;
+        const z = Math.sin(theta) * rAtY;
 
         const pos = new THREE.Vector3(x, y, z);
         const dummy = new THREE.Object3D();
         dummy.position.copy(pos);
-        dummy.lookAt(0, 0, 0);
-        const rot = dummy.rotation.clone();
-        rot.y += Math.PI;
+        dummy.up.set(0, 1, 0); // 严格锁定局部 Y 轴指向世界向上矢量
+        dummy.lookAt(x * 2, y * 2, z * 2); // 卡片正面朝向球体外部法线方向
 
-        targets.push({ pos, rot, targetScale: 1.0 });
+        const rot = dummy.rotation.clone();
+
+        targets.push({
+          pos,
+          rot,
+          targetScale: isMobile ? 0.95 : 1.10
+        });
       }
     }
 
@@ -1098,6 +1504,11 @@ class CelestialSphereGallery {
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height);
+      // 「照片海浪墙」需要随窗口尺寸重新铺排，保证所有照片始终完整入画
+      if (this.currentShape === 'wave') {
+        this.waveGrid = this.computeWaveGrid();
+        this.applyLayout('wave', true);
+      }
     });
 
     const dom = this.renderer.domElement;
@@ -1115,7 +1526,8 @@ class CelestialSphereGallery {
 
     let pointerStartX = 0;
     let pointerStartY = 0;
-    let waveProgressStart = 0;
+    let wavePhaseStart = 0;
+    let wavePanStart = 0;
 
     dom.addEventListener('pointerdown', (e) => {
       this.isDragging = false;
@@ -1123,7 +1535,8 @@ class CelestialSphereGallery {
       pointerStartY = e.clientY;
       if (this.currentShape === 'wave') {
         this.isWaveDragging = true;
-        waveProgressStart = this.waveProgress;
+        wavePhaseStart = this.wavePhase || 0;
+        wavePanStart = this.wavePanY || 0;
       }
       if (this.controls) this.controls.autoRotate = false;
       clearTimeout(this.idleResumeTimer);
@@ -1136,9 +1549,13 @@ class CelestialSphereGallery {
         this.isDragging = true;
       }
       if (this.isWaveDragging && this.currentShape === 'wave') {
-        // 跟手水平拖动轮播图
+        // 横向拖动 → 拨动波光相位；纵向拖动 → 上下平移这面照片墙
         const w = window.innerWidth || 1000;
-        this.waveProgress = waveProgressStart - (dx / w) * 1.2;
+        const h = window.innerHeight || 800;
+        this.wavePhase = wavePhaseStart - (dx / w) * 6.0;
+        const g = this.waveGrid;
+        const panRange = g ? Math.max(0, (g.wallH - g.visH) / 2 + 260) : 0;
+        this.wavePanY = Math.max(-panRange, Math.min(panRange, wavePanStart + (dy / h) * (g ? g.visH : 800) * 1.1));
       }
     });
 
@@ -1289,9 +1706,9 @@ class CelestialSphereGallery {
       targetCamPos = { x: 0, y: isMobile ? 120 : 150, z: radius + (isMobile ? 440 : 580) };
       lookTarget = { x: 0, y: 15, z: 0 };
     } else if (this.currentShape === 'wave') {
-      const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-      targetCamPos = { x: 0, y: isMobile ? 35 : 45, z: isMobile ? 780 : 920 };
-      lookTarget = { x: 0, y: 20, z: 0 };
+      const g = this.waveGrid || this.computeWaveGrid();
+      targetCamPos = { x: 0, y: 0, z: g.camZ };
+      lookTarget = { x: 0, y: 0, z: 0 };
     } else if (this.currentShape === 'heart') {
       targetCamPos = { x: 160, y: 95, z: 1080 };
       lookTarget = { x: 0, y: 30, z: 0 };
@@ -1329,14 +1746,16 @@ class CelestialSphereGallery {
       });
     }
 
-    // Reset card hover scales
+    // Reset card hover scales（照片海浪墙的缩放由 animate() 全权接管，避免补间抢写导致闪烁）
     const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-    this.photoMeshes.forEach(mesh => {
+    if (this.currentShape !== 'wave') {
+      this.photoMeshes.forEach(mesh => {
       const s = (this.currentShape === 'carousel' && mesh.userData.reflectionGroup && mesh.userData.reflectionGroup.visible)
         ? (isMobile ? 0.90 : 1.0)
         : (this.currentShape === 'carousel' ? 0.001 : 1.0);
       gsap.to(mesh.scale, { x: s, y: s, z: s, duration: 0.4, ease: 'power2.out' });
-    });
+      });
+    }
     this.hoveredMesh = null;
   }
 
@@ -1370,10 +1789,8 @@ class CelestialSphereGallery {
       if (this.gyroRing1) this.gyroRing1.rotation.z += 0.012;
       if (this.gyroRing2) this.gyroRing2.rotation.x += 0.015;
 
-      const heartScale = 1.0 + bass * 0.35;
-      if (this.hologramHeart) {
-        this.hologramHeart.scale.set(heartScale, heartScale, heartScale);
-      }
+      const heartScale = (this.holoBaseScale || 1) * (1.0 + bass * 0.35);
+      this.hologramGroup.scale.set(heartScale, heartScale, heartScale);
 
       this.soundwaveRings.forEach(wave => {
         wave.userData.progress += wave.userData.speed + bass * 0.02;
@@ -1385,51 +1802,128 @@ class CelestialSphereGallery {
       });
     }
 
+    // 2b. 玫瑰金光晕呼吸 & 上升的心形光尘
+    if (this.auraSprite && this.auraSprite.visible) {
+      const base = this.auraBaseSize || 2944;
+      const coreMode = this.currentShape === 'heart';
+      const pulse = 1.0 + Math.sin(elapsed * 1.25) * (coreMode ? 0.045 : 0.03) + bass * 0.10;
+      const s = base * pulse;
+      this.auraSprite.scale.set(s, s, 1);
+      this.auraSprite.material.opacity = (coreMode ? 0.72 : 0.34) + Math.sin(elapsed * 1.25) * 0.10 + bass * 0.16;
+    }
+
+    if (this.risingHearts && this.risingHearts.visible) {
+      const attr = this.risingHearts.geometry.attributes.position;
+      const seeds = this.risingHearts.userData.seeds;
+      for (let i = 0; i < seeds.length; i++) {
+        let y = attr.getY(i) + seeds[i].speed * 1.6;
+        if (y > 1150) { y = -800; }
+        attr.setY(i, y);
+        attr.setX(i, attr.getX(i) + Math.sin(elapsed * 0.55 + seeds[i].sway) * 0.55);
+      }
+      attr.needsUpdate = true;
+      this.risingHearts.material.opacity = (this.currentShape === 'heart' ? 0.55 : 0.34)
+        + Math.sin(elapsed * 1.6) * 0.14 + bass * 0.2;
+    }
+
     // 3. Autonomous Procedural Kinetic Motion
     if (this.currentShape === 'wave') {
-      // 3D 流光轮播传送带：“展示一个，划到后面，首尾循环展示”
-      if (!this.isWaveDragging) {
-        this.waveProgress += 0.0016;
+      // =======================================================
+      // 「照片海浪墙」：553 张照片全部在场，三层正弦叠加成流动丝绸
+      //   卡片沿曲面法线倾斜，并由 3D 神经网络突触相连，随波光一同呼吸
+      // =======================================================
+      const g = this.waveGrid || this.computeWaveGrid();
+      const t = elapsed + (this.wavePhase || 0);
+      const panY = this.wavePanY || 0;
+      const n = this.photoMeshes.length;
+
+      const zs = new Float32Array(n);
+
+      for (let i = 0; i < n; i++) {
+        const col = i % g.cols;
+        const row = Math.floor(i / g.cols);
+        const wx = col * 0.40;
+        const wy = row * 0.34;
+
+        // 三层正弦：横向主浪 + 纵向副浪 + 斜向涟漪
+        const z =
+          Math.sin(wx + t * 0.85) * 96 +
+          Math.sin(wy * 1.15 - t * 0.62) * 74 +
+          Math.sin((wx + wy) * 0.55 - t * 0.44) * 62;
+        zs[i] = z;
+
+        const cx = (col - (g.cols - 1) / 2) * g.dx;
+        const cy = ((g.rows - 1) / 2 - row) * g.dy + panY;
+
+        // 曲面偏导 → 卡片沿法线微微倾斜，产生真实 3D 起伏
+        const dzCol = 0.40 * 96 * Math.cos(wx + t * 0.85) + 0.55 * 62 * Math.cos((wx + wy) * 0.55 - t * 0.44);
+        const dzRow = 0.34 * 1.15 * 74 * Math.cos(wy * 1.15 - t * 0.62) + 0.55 * 62 * Math.cos((wx + wy) * 0.55 - t * 0.44);
+        const rotY = Math.atan2(dzCol, g.dx) * 0.42;
+        const rotX = -Math.atan2(dzRow, g.dy) * 0.42;
+        const rotZ = Math.sin(wx * 0.6 + wy * 0.5 + t * 0.3) * 0.035;
+
+        // 浪尖更近更大更亮，浪谷更远更小更柔
+        const lift = z / 232; // 归一化 -1..1
+        const scale = Math.max(0.06, g.scale * (1 + lift * 0.20));
+        const borderOp = Math.min(1, Math.max(0.12, 0.42 + lift * 0.42));
+
+        const mesh = this.photoMeshes[i];
+        mesh.position.set(cx + Math.sin(wy * 0.8 + t * 0.35) * 10,
+                          cy + Math.sin(wx * 0.75 - t * 0.5) * 16,
+                          z);
+        mesh.rotation.set(rotX, rotY, rotZ);
+        mesh.scale.set(scale, scale, scale);
+
+        if (mesh.userData.borderLine) mesh.userData.borderLine.material.opacity = borderOp;
+        if (mesh.userData.backBorder) mesh.userData.backBorder.material.opacity = borderOp;
+        mesh.userData.currentScale = scale;
       }
-      const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-      const maxWaveCards = isMobile ? 10 : 12;
-      const spanX = isMobile ? 780 : 1180;
-      const frontZ = 280;
-      const backZ = -220;
 
-      this.photoMeshes.forEach(mesh => {
-        if (mesh.userData.inWave && mesh.userData.waveIndex >= 0) {
-          const wIdx = mesh.userData.waveIndex;
-          let u = ((wIdx / maxWaveCards) + this.waveProgress) % 1.0;
-          if (u < 0) u += 1.0;
-
-          // u = 0.5 处于屏幕最前端正中央焦点展示位
-          const delta = (u - 0.5) * 2; // [-1, 1]
-
-          const x = Math.sin(delta * Math.PI) * spanX * 0.5;
-          const z = ((Math.cos(delta * Math.PI) + 1) * 0.5) * (frontZ - backZ) + backZ;
-          const y = Math.sin(delta * Math.PI * 2) * (isMobile ? 35 : 55) + 20;
-          const rotY = -Math.sin(delta * Math.PI) * 0.45;
-          const rotZ = Math.cos(delta * Math.PI * 2) * 0.05;
-
-          const isCenter = Math.abs(delta) < 0.16;
-          const distFromCenter = Math.min(1.0, Math.abs(delta) * 1.8);
-          const targetScale = isCenter ? (isMobile ? 1.20 : 1.35) : Math.max(0.65, 1.0 - distFromCenter * 0.28);
-
-          mesh.position.set(x, y, z);
-          mesh.rotation.set(0, rotY, rotZ);
-          mesh.scale.set(targetScale, targetScale, targetScale);
-
-          if (mesh.userData.borderLine) {
-            mesh.userData.borderLine.material.opacity = isCenter ? 1.0 : Math.max(0.2, 0.5 - distFromCenter * 0.3);
-          }
-          if (mesh.userData.backBorder) {
-            mesh.userData.backBorder.material.opacity = isCenter ? 1.0 : Math.max(0.2, 0.5 - distFromCenter * 0.3);
-          }
+      // 照片墙的 3D 神经网络突触（随波浪一起流动的电光连线）
+      if (this.waveNet && this.waveGridEdges && this.waveNet.visible) {
+        const attr = this.waveNet.geometry.attributes.position;
+        const cattr = this.waveNet.geometry.attributes.color;
+        const arr = attr.array;
+        const carr = cattr.array;
+        const edges = this.waveGridEdges;
+        for (let e = 0; e < edges.length; e++) {
+          const a = this.photoMeshes[edges[e][0]];
+          const b = this.photoMeshes[edges[e][1]];
+          const o = e * 6;
+          arr[o]     = a.position.x; arr[o + 1] = a.position.y; arr[o + 2] = a.position.z + 2;
+          arr[o + 3] = b.position.x; arr[o + 4] = b.position.y; arr[o + 5] = b.position.z + 2;
+          // 连线颜色随浪高由青转玫红，形成波光流转的神经网络
+          const h = Math.max(0, Math.min(1, (zs[edges[e][0]] + 232) / 464));
+          const r = 0.35 + h * 0.62;
+          const gg = 0.72 - h * 0.30;
+          const bb = 1.0 - h * 0.38;
+          carr[o] = r; carr[o + 1] = gg; carr[o + 2] = bb;
+          carr[o + 3] = r * 0.6; carr[o + 4] = gg * 0.6; carr[o + 5] = bb * 0.65;
         }
-      });
+        attr.needsUpdate = true;
+        cattr.needsUpdate = true;
+        this.waveNet.material.opacity = 0.22 + Math.sin(elapsed * 0.9) * 0.08 + bass * 0.16;
+      }
     } else {
-      // 其它 3D 模式（心形、星球、时光回廊）：维持优雅行波呼吸律动
+      // 3D 澎湃浪漫心跳律动 (Lub-Dub Double Heartbeat, 75bpm 初恋心率)
+      let beatScale = 1.0;
+      let heartPulseY = 0;
+      if (this.currentShape === 'heart') {
+        const heartPeriod = 1.35;
+        const ht = (elapsed % heartPeriod) / heartPeriod;
+        if (ht < 0.16) {
+          // 第一心音 Lub：有力收缩膨胀
+          const p = Math.sin((ht / 0.16) * Math.PI);
+          beatScale = 1.0 + p * 0.095;
+          heartPulseY = p * 12;
+        } else if (ht >= 0.22 && ht < 0.38) {
+          // 第二心音 Dub：舒缓微搏动
+          const p = Math.sin(((ht - 0.22) / 0.16) * Math.PI);
+          beatScale = 1.0 + p * 0.048;
+          heartPulseY = p * 6;
+        }
+      }
+
       this.photoMeshes.forEach(mesh => {
         if (mesh !== this.hoveredMesh && mesh.userData.targetPos && !mesh.userData.isAnimating) {
           const idx = mesh.userData.index || 0;
@@ -1437,11 +1931,11 @@ class CelestialSphereGallery {
           const waveFreq = 0.26;
           const phase = elapsed * waveSpeed - idx * waveFreq;
 
-          const amp = (this.currentShape === 'heart' ? 12.0 : 14.0);
-          const bounceY = Math.sin(phase) * amp;
+          const amp = 12.0;
+          const bounceY = Math.sin(phase) * amp + heartPulseY;
           const bounceZ = Math.cos(phase) * (amp * 0.45);
           const bounceRotZ = Math.sin(phase) * 0.055;
-          const bounceScale = 1.0 + Math.sin(phase) * 0.04;
+          const bounceScale = (1.0 + Math.sin(phase) * 0.03) * beatScale;
 
           mesh.position.y = mesh.userData.targetPos.y + bounceY;
           mesh.position.z = mesh.userData.targetPos.z + bounceZ;
@@ -1452,13 +1946,49 @@ class CelestialSphereGallery {
           mesh.scale.set(s, s, s);
         }
       });
-    }
 
+      if (this.currentShape === 'heart' && this.hologramGroup) {
+        const hs = (this.holoBaseScale || 1) * beatScale;
+        this.hologramGroup.scale.set(hs, hs, hs);
+      }
+    }
     // 4. Stardust Galaxy Rotation & Pulse
     if (this.starField) {
       this.starField.rotation.y += 0.0004;
       this.starField.rotation.x += 0.00015;
       this.starField.material.size = 22 + bass * 12;
+    }
+
+    // 4b. 近景悬浮光尘漂移（空气微粒感）
+    if (this.dustLayer) {
+      const attr = this.dustLayer.geometry.attributes.position;
+      const seeds = this.dustLayer.userData.seeds;
+      for (let i = 0; i < seeds.length; i++) {
+        let y = attr.getY(i) + seeds[i].drift * 0.9;
+        if (y > 1250) y = -1250;
+        attr.setY(i, y);
+        attr.setX(i, attr.getX(i) + Math.sin(elapsed * 0.35 + seeds[i].sway) * 0.35);
+      }
+      attr.needsUpdate = true;
+      this.dustLayer.material.opacity = 0.38 + Math.sin(elapsed * 0.8) * 0.10 + bass * 0.16;
+    }
+
+    // 4c. 宇宙脑神经网络穹顶：缓慢旋转 + 沿突触奔跑的电信号
+    if (this.neuralGroup && this.neuralLines && this.neuralNodes) {
+      this.neuralGroup.rotation.y += 0.0006;
+      this.neuralGroup.rotation.x += 0.0002;
+      this.neuralLines.material.opacity = 0.20 + Math.sin(elapsed * 0.7) * 0.08 + bass * 0.24;
+      this.neuralNodes.material.size = 26 + bass * 16;
+
+      const pa = this.neuralPulses.geometry.attributes.position;
+      this.pulseState.forEach((p, i) => {
+        p.t += p.speed * (1 + bass * 1.6);
+        if (p.t >= 1) { p.t = 0; p.edge = Math.floor(Math.random() * this.netEdges.length); }
+        const e = this.netEdges[p.edge];
+        const a = this.netNodes[e[0]], b = this.netNodes[e[1]];
+        pa.setXYZ(i, a.x + (b.x - a.x) * p.t, a.y + (b.y - a.y) * p.t, a.z + (b.z - a.z) * p.t);
+      });
+      pa.needsUpdate = true;
     }
 
     // 5. Parallax Scene Micro-Tilt
@@ -1468,8 +1998,10 @@ class CelestialSphereGallery {
     this.scene.rotation.x = this.mouseParallax.y * 0.5;
 
     // 6. Camera gentle Orbit Update
-    if (this.controls && this.controls.autoRotate) {
-      this.controls.update();
+    if (this.controls) {
+      if (this.controls.autoRotate || this.currentShape === 'wave') {
+        this.controls.update();
+      }
     }
 
     this.renderer.render(this.scene, this.camera);

@@ -25,3 +25,5 @@ node_modules/
 /screen_*.png
 /verify_*.png
 
+
+.workbuddy/

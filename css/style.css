@@ -795,3 +795,60 @@ img, video, canvas {
   transform: translate(-50%, -50%) scale(1.0) !important;
   pointer-events: auto !important;
 }
+
+
+/* =========================================================
+   Critical Layout Fixes: Storyline Padding & Carousel Controls
+   ========================================================= */
+#viewportStoryline {
+  padding-top: 160px !important;
+  padding-bottom: 120px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 640px) {
+  #viewportStoryline {
+    padding-top: 150px !important;
+    padding-bottom: 90px !important;
+  }
+}
+
+/* Luxury Carousel Batch Dock */
+.carousel-control-dock {
+  position: fixed;
+  bottom: 2.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 1rem;
+  border-radius: 9999px;
+  background: rgba(12, 12, 18, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 16px 36px -10px rgba(0, 0, 0, 0.85);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  user-select: none;
+}
+
+.carousel-control-dock button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+/* Modal Adaptive Natural Image Dimensions */
+#modalImg {
+  max-width: min(92vw, 1200px) !important;
+  max-height: 78vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}

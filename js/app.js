@@ -159,6 +159,8 @@ class EternalApp {
     this.currentMode = 'galaxy'; // galaxy (3D照片墙) | universe | museum | flipbook | storyline
     this.currentModalIndex = 0;
     this.currentShowcaseIndex = 0;
+    this.isModalSlideshowPlaying = false;
+    this.modalSlideshowTimer = null;
     this.showcaseTimer = null;
     this.isShowcasePlaying = true;
     this.isImgZoomed = false;
@@ -254,21 +256,17 @@ class EternalApp {
       ? window.REAL_COUPLE_PHOTOS
       : DEFAULT_MEMORIES;
 
+    // 强行清理历史旧缓存，确保全部 553 张最新照片无条件直出
     try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.photos || parsed.photos.length < defaultPhotos.length || (parsed.photos[0] && parsed.photos[0].url.includes('unsplash'))) {
-          parsed.photos = defaultPhotos;
-        }
-        return parsed;
-      }
-    } catch (e) {
-      console.warn('Could not read localStorage:', e);
-    }
+      localStorage.removeItem(this.storageKey);
+      localStorage.removeItem('eternal_echo_data_v1');
+      localStorage.removeItem('eternal_echo_data_v2');
+      localStorage.removeItem('eternal_echo_data_v3');
+    } catch (e) {}
+
     return {
-      lover1: '亲爱的',
-      lover2: '我',
+      lover1: '珍珠',
+      lover2: '老公',
       startDate: '2022-02-14',
       loveQuote: '从2022年春天的初遇，到岁月长河里的每一刻相伴，唯爱永恒。',
       photos: defaultPhotos
@@ -301,8 +299,9 @@ class EternalApp {
     // 3. Initialize Master 3D Spatial Gallery (CelestialSphereGallery)
     if (document.getElementById('sphereContainer') && typeof CelestialSphereGallery !== 'undefined') {
       this.sphereGallery = new CelestialSphereGallery('sphereContainer', {
-        onSelectPhoto: (photo) => this.showLocalShowcase(photo),
-        onShowLetter: () => this.showClimaxModal()
+        onSelectPhoto: (photo) => this.showArtworkModal(photo),
+        onShowLetter: () => this.showClimaxModal(),
+        onCarouselBatchChange: (info) => this.updateCarouselBatchUI(info)
       });
       this.sphereGallery.loadPhotos(this.state.photos);
     }
@@ -333,7 +332,7 @@ class EternalApp {
   }
 
   initMonthFilterBar() {
-    const container = document.getElementById('monthFilterContainer');
+    const container = document.getElementById('monthFilterBar') || document.getElementById('monthFilterContainer');
     if (!container) return;
 
     container.innerHTML = '';
@@ -953,7 +952,7 @@ class EternalApp {
     const foundIdx = this.state.photos.findIndex(p => p.url === item.url || p.id === item.id);
     this.currentShowcaseIndex = foundIdx !== -1 ? foundIdx : 0;
 
-    dock.classList.remove('hidden');
+    dock.classList.remove('hidden'); dock.style.display = 'block';
     dock.classList.remove('opacity-0');
     dock.classList.add('opacity-100');
 
@@ -1016,7 +1015,7 @@ class EternalApp {
       progressBar.style.width = '0%';
       requestAnimationFrame(() => {
         if (this.isShowcasePlaying) {
-          progressBar.style.transition = 'width 3.5s linear';
+          progressBar.style.transition = 'width 4.5s linear';
           progressBar.style.width = '100%';
         }
       });
@@ -1044,7 +1043,7 @@ class EternalApp {
 
     this.showcaseTimer = setTimeout(() => {
       this.showcaseNext();
-    }, 3500);
+    }, 4500);
   }
 
   showcaseNext() {
@@ -1092,7 +1091,40 @@ class EternalApp {
     }
   }
 
-  hideLocalShowcase(resetCamera = false) {
+      closeAllPreviews() {
+    // 1. 关闭时光放映台浮窗并清除定时器
+    if (this.showcaseTimer) {
+      clearTimeout(this.showcaseTimer);
+      this.showcaseTimer = null;
+    }
+    if (this.hideDockTimer) {
+      clearTimeout(this.hideDockTimer);
+      this.hideDockTimer = null;
+    }
+    this.isShowcasePlaying = false;
+    const dock = document.getElementById('localShowcaseDock');
+    if (dock) {
+      dock.classList.remove('opacity-100');
+      dock.classList.add('opacity-0', 'hidden');
+      dock.style.display = 'none';
+    }
+    const showcaseVideo = document.getElementById('showcaseVideo');
+    if (showcaseVideo) {
+      showcaseVideo.pause();
+      showcaseVideo.classList.add('hidden');
+    }
+
+    // 2. 关闭全屏大图灯箱（若存在）
+    this.hideArtworkModal();
+
+    // 3. 关闭长信弹窗
+    this.hideClimaxModal();
+
+    // 4. 重置 3D 相机对焦，恢复全局宏大视角
+    if (this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
+      this.sphereGallery.resetCameraFocus();
+    }
+  }hideLocalShowcase(resetCamera = false) {
     if (this.showcaseTimer) clearTimeout(this.showcaseTimer);
     this.isShowcasePlaying = false;
     const dock = document.getElementById('localShowcaseDock');
@@ -1110,6 +1142,14 @@ class EternalApp {
     }
   }
 
+  updateCarouselBatchUI(info) {
+    const label = document.getElementById('carouselBatchLabel');
+    if (label && info) {
+      const current = info.batchCount || info.batchSize || 0;
+      label.textContent = `第 ${info.batchIndex + 1} / ${info.totalBatches} 组 · 本组 ${current} 张 / 共 ${info.totalCount} 张`;
+    }
+  }
+
   showArtworkModal(item) {
     if (item && item.isClimaxLetter) {
       if (this.sphereGallery) this.sphereGallery.focusClimaxCard();
@@ -1120,74 +1160,132 @@ class EternalApp {
     const modal = document.getElementById('artworkModal');
     if (!modal) return;
 
-    // Find index in photo list
+    // 找到在全部 553 张中的真实索引
     const foundIdx = this.state.photos.findIndex(p => p.url === item.url || p.id === item.id);
     this.currentModalIndex = foundIdx !== -1 ? foundIdx : 0;
     this.renderModalContent();
 
-    modal.classList.add('active');
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modal.classList.add('opacity-100', 'pointer-events-auto');
+  }
+
+  hideArtworkModal() {
+    const modal = document.getElementById('artworkModal');
+    if (!modal) return;
+    if (this.modalSlideshowTimer) {
+      clearTimeout(this.modalSlideshowTimer);
+      this.modalSlideshowTimer = null;
+    }
+    this.isModalSlideshowPlaying = false;
+    this.updateModalSlideshowBtn();
+    modal.classList.remove('opacity-100', 'pointer-events-auto');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    const vid = document.getElementById('modalVideo');
+    if (vid) {
+      vid.pause();
+      vid.src = '';
+    }
+  }
+
+  toggleModalSlideshow() {
+    this.isModalSlideshowPlaying = !this.isModalSlideshowPlaying;
+    this.updateModalSlideshowBtn();
+    if (this.isModalSlideshowPlaying) {
+      this.renderModalContent();
+    } else {
+      if (this.modalSlideshowTimer) {
+        clearTimeout(this.modalSlideshowTimer);
+        this.modalSlideshowTimer = null;
+      }
+      const bar = document.getElementById('modalProgressBar');
+      if (bar) {
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+      }
+    }
+  }
+
+  updateModalSlideshowBtn() {
+    const playIcon = document.getElementById('modalPlayIcon');
+    const pauseIcon = document.getElementById('modalPauseIcon');
+    const playText = document.getElementById('modalPlayText');
+    if (playIcon && pauseIcon && playText) {
+      if (this.isModalSlideshowPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        playText.textContent = '暂停放映';
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        playText.textContent = '自动放映';
+      }
+    }
   }
 
   renderModalContent() {
     const item = this.state.photos[this.currentModalIndex];
     if (!item) return;
 
+    if (this.modalSlideshowTimer) {
+      clearTimeout(this.modalSlideshowTimer);
+      this.modalSlideshowTimer = null;
+    }
+
     const imgEl = document.getElementById('modalImg');
     const videoEl = document.getElementById('modalVideo');
-    const shield = document.querySelector('.lightbox-img-container .secure-img-shield');
+    const counterEl = document.getElementById('modalCounter');
+    const dateEl = document.getElementById('modalDate');
+    const titleEl = document.getElementById('modalTitle');
+    const descEl = document.getElementById('modalDesc');
+    const progressBar = document.getElementById('modalProgressBar');
+
+    if (counterEl) {
+      counterEl.textContent = `${String(this.currentModalIndex + 1).padStart(2, '0')} / ${this.state.photos.length}`;
+    }
+    if (dateEl) dateEl.textContent = item.date || item.month || '';
+    if (titleEl) titleEl.textContent = item.title || '甜蜜回忆';
+    if (descEl) descEl.textContent = `"${item.desc || '漫长岁月里的独家印记，相视一笑的每一天。'}"`;
 
     if (item.isVideo && item.videoUrl) {
       if (imgEl) imgEl.classList.add('hidden');
       if (videoEl) {
         videoEl.classList.remove('hidden');
         videoEl.src = item.videoUrl;
-        videoEl.play().catch(e => console.log('Video autoplay note:', e));
+        videoEl.play().catch(() => {});
+        videoEl.onended = () => {
+          if (this.isModalSlideshowPlaying) {
+            this.modalNextPhoto();
+          }
+        };
       }
-      // Temporarily pause BGM while playing user video
-      if (this.isPlayingMusic && this.audioElement) {
-        this.audioElement.pause();
-        this.wasBgmPlayingBeforeVideo = true;
-      }
-      if (shield) shield.style.display = 'none'; // allow interacting with video controls
     } else {
       if (videoEl) {
         videoEl.pause();
         videoEl.classList.add('hidden');
-        videoEl.src = '';
+        videoEl.onended = null;
       }
       if (imgEl) {
         imgEl.classList.remove('hidden');
         imgEl.src = item.url;
-        imgEl.style.transform = 'scale(1)';
-        this.isImgZoomed = false;
       }
-      // Resume BGM if it was playing
-      if (this.wasBgmPlayingBeforeVideo && this.audioElement) {
-        this.audioElement.play().catch(e => console.log(e));
-        this.wasBgmPlayingBeforeVideo = false;
-      }
-      if (shield) shield.style.display = '';
     }
 
-    const titleEl = document.getElementById('modalTitle');
-    const dateEl = document.getElementById('modalDate');
-    const descEl = document.getElementById('modalDesc');
-    const counterEl = document.getElementById('modalCounter');
-
-    if (titleEl) titleEl.textContent = item.title || '甜蜜回忆';
-    if (dateEl) dateEl.textContent = item.date || 'Sweet Moments';
-    if (descEl) descEl.textContent = item.desc || (item.isVideo ? '珍贵动态录像，每一次重温依然心动。' : '每一张照片都是时间写给我们的浪漫情书。');
-    if (counterEl) {
-      const cur = String(this.currentModalIndex + 1).padStart(2, '0');
-      const total = String(this.state.photos.length).padStart(2, '0');
-      counterEl.textContent = `${cur} / ${total}`;
+    // 自动放映进度条与倒计时 (每张留足充裕的 4.5 秒，绝不仅有半秒！)
+    if (progressBar) {
+      progressBar.style.transition = 'none';
+      progressBar.style.width = '0%';
+      if (this.isModalSlideshowPlaying && (!item.isVideo || !item.videoUrl)) {
+        requestAnimationFrame(() => {
+          progressBar.style.transition = 'width 4.5s linear';
+          progressBar.style.width = '100%';
+        });
+        this.modalSlideshowTimer = setTimeout(() => {
+          if (this.isModalSlideshowPlaying) {
+            this.modalNextPhoto();
+          }
+        }, 4500);
+      }
     }
-  }
-
-  modalNextPhoto() {
-    if (this.state.photos.length === 0) return;
-    this.currentModalIndex = (this.currentModalIndex + 1) % this.state.photos.length;
-    this.renderModalContent();
   }
 
   modalPrevPhoto() {
@@ -1196,29 +1294,10 @@ class EternalApp {
     this.renderModalContent();
   }
 
-  hideArtworkModal() {
-    const modal = document.getElementById('artworkModal');
-    if (modal) {
-      modal.classList.remove('active');
-      const videoEl = document.getElementById('modalVideo');
-      if (videoEl) {
-        videoEl.pause();
-        videoEl.classList.add('hidden');
-        videoEl.src = '';
-      }
-      if (this.wasBgmPlayingBeforeVideo && this.audioElement) {
-        this.audioElement.play().catch(e => console.log(e));
-        this.wasBgmPlayingBeforeVideo = false;
-      }
-      const imgEl = document.getElementById('modalImg');
-      if (imgEl) imgEl.style.transform = 'scale(1)';
-      this.isImgZoomed = false;
-
-      // Smoothly reset 3D camera to prevent shape distortion
-      if (this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
-        this.sphereGallery.resetCameraFocus();
-      }
-    }
+  modalNextPhoto() {
+    if (this.state.photos.length === 0) return;
+    this.currentModalIndex = (this.currentModalIndex + 1) % this.state.photos.length;
+    this.renderModalContent();
   }
 
   attemptDirectAutoplay() {
@@ -1317,20 +1396,41 @@ class EternalApp {
           if (!this.isPlayingMusic) this.toggleMusic();
         }
 
+        // 切换任何模块时，立即无条件彻底关闭一切预览浮窗和弹窗
+        this.closeAllPreviews();
+
         if (tabId === 'navClimaxLetterBtn') {
           this.showClimaxModal();
           if (this.sphereGallery) this.sphereGallery.focusClimaxCard();
         } else {
-          this.hideClimaxModal();
-          this.hideArtworkModal();
-          this.hideLocalShowcase();
+
+          const carouselDock = document.getElementById('carouselControlDock');
 
           if (shape) {
             this.switchMode('galaxy');
             if (this.sphereGallery) {
               this.sphereGallery.applyLayout(shape);
             }
+            if (carouselDock) {
+              if (shape === 'carousel') {
+                carouselDock.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+                carouselDock.classList.add('opacity-100', 'pointer-events-auto');
+              } else {
+                carouselDock.classList.remove('opacity-100', 'pointer-events-auto');
+                carouselDock.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                  if (this.currentMode !== 'galaxy' || this.sphereGallery?.currentShape !== 'carousel') {
+                    carouselDock.classList.add('hidden');
+                  }
+                }, 300);
+              }
+            }
           } else if (mode === 'storyline' || tabId === 'navStorylineBtn') {
+            if (carouselDock) {
+              carouselDock.classList.remove('opacity-100', 'pointer-events-auto');
+              carouselDock.classList.add('opacity-0', 'pointer-events-none');
+              carouselDock.classList.add('hidden');
+            }
             this.switchMode('storyline');
           }
         }
@@ -1354,6 +1454,17 @@ class EternalApp {
     const closeModalBtn = document.getElementById('closeModalBtn');
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => this.hideArtworkModal());
 
+    const modalPlayPauseBtn = document.getElementById('modalPlayPauseBtn');
+    if (modalPlayPauseBtn) {
+      modalPlayPauseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleModalSlideshow();
+      });
+    }
+
+    const modalBackdrop = document.getElementById('artworkModalBackdrop');
+    if (modalBackdrop) modalBackdrop.addEventListener('click', () => this.hideArtworkModal());
+
     const modalPrevBtn = document.getElementById('modalPrevBtn');
     if (modalPrevBtn) modalPrevBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1364,6 +1475,38 @@ class EternalApp {
     if (modalNextBtn) modalNextBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.modalNextPhoto();
+    });
+
+    // Carousel batch navigation buttons
+    const prevBatchBtn = document.getElementById('carouselPrevBatchBtn');
+    if (prevBatchBtn) {
+      prevBatchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.sphereGallery) this.sphereGallery.prevCarouselBatch();
+      });
+    }
+
+    const nextBatchBtn = document.getElementById('carouselNextBatchBtn');
+    if (nextBatchBtn) {
+      nextBatchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.sphereGallery) this.sphereGallery.nextCarouselBatch();
+      });
+    }
+
+    // Keyboard navigation (Arrow keys + Esc)
+    window.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('artworkModal');
+      const isModalOpen = modal && !modal.classList.contains('opacity-0');
+      if (isModalOpen) {
+        if (e.key === 'ArrowLeft') {
+          this.modalPrevPhoto();
+        } else if (e.key === 'ArrowRight') {
+          this.modalNextPhoto();
+        } else if (e.key === 'Escape') {
+          this.hideArtworkModal();
+        }
+      }
     });
 
     const toggleCaptionBtn = document.getElementById('toggleCaptionBtn');
@@ -1497,6 +1640,17 @@ class EternalApp {
     }
 
     // Floating Memory Showcase Dock Controls ("局部展示，自动轮放替换")
+    
+    const showcaseImg = document.getElementById('showcaseImg');
+    if (showcaseImg) {
+      showcaseImg.style.cursor = 'zoom-in';
+      showcaseImg.addEventListener('click', () => {
+        if (this.state.photos && this.state.photos[this.currentShowcaseIndex]) {
+          this.showArtworkModal(this.state.photos[this.currentShowcaseIndex]);
+        }
+      });
+    }
+
     const closeShowcaseBtn = document.getElementById('closeShowcaseBtn');
     if (closeShowcaseBtn) closeShowcaseBtn.addEventListener('click', () => this.hideLocalShowcase(true));
 

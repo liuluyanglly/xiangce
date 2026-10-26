@@ -33,10 +33,10 @@
       <button class="nav-tab active" data-shape="heart" title="3D 立体旋转大爱心聚合照片墙">
         <span>3D立体爱心</span>
       </button>
-      <button class="nav-tab" data-shape="wave" title="MotionSites 3D 波动流动飘带">
+      <button class="nav-tab" data-shape="wave" title="553 张照片全量铺开的 3D 照片海浪墙 · 神经网络突触随波光流动">
         <span>时光波浪</span>
       </button>
-      <button class="nav-tab" data-shape="carousel" title="3D 时尚展厅时光回廊与奢华镜面倒影">
+      <button class="nav-tab" data-shape="carousel" title="3D 时尚展厅时光回廊与奢华镜面倒影（36 张一组，共 16 组流转）">
         <span>时光回廊</span>
       </button>
       <button class="nav-tab" data-shape="sphere" title="3D 斐波那契记忆星球">
@@ -85,11 +85,11 @@
     <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-zinc-950/60 border border-white/10 backdrop-blur-xl shadow-lg">
       <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">EE</div>
       <div>
-        <h1 id="coupleTitle" class="text-xs font-serif font-bold text-white tracking-wide">亲爱的 & 我 ♥</h1>
+        <h1 id="coupleTitle" class="text-xs font-serif font-bold text-white tracking-wide">老公 & 珍珠 ♥</h1>
         <p class="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5">
           <span id="headerLoveTimer">已相伴计算中...</span>
           <span>·</span>
-          <span id="headerMediaCounter">已珍藏 276 处专属回忆</span>
+          <span id="headerMediaCounter">已珍藏 552 处专属回忆</span>
         </p>
       </div>
     </div>
@@ -100,18 +100,63 @@
        ========================================================================= -->
   <main id="viewportGalaxy" class="mode-viewport fixed inset-0 w-full h-full z-10">
     <div id="sphereContainer" class="w-full h-full"></div>
+
+    <!-- Carousel Mode Floating Batch Dock (奢华环形展厅批次控制器) -->
+    <div id="carouselControlDock" class="carousel-control-dock hidden opacity-0 pointer-events-none">
+      <button id="carouselPrevBatchBtn" class="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs transition" title="浏览上一组">
+        <span>◀ 上一组</span>
+      </button>
+      <div class="px-3 py-1 text-xs font-mono text-zinc-200 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+        <span id="carouselBatchLabel">第 1 / 24 组 (共 553 张)</span>
+      </div>
+      <button id="carouselNextBatchBtn" class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-purple-600 hover:opacity-95 text-white text-xs font-semibold shadow-md transition" title="浏览下一组">
+        <span>下一组 ▶</span>
+      </button>
+    </div>
   </main>
 
   <!-- =========================================================================
        VIEWPORT 2: Storyline Timeline (Curated Chronological Feed)
        ========================================================================= -->
-  <section id="viewportStoryline" class="mode-viewport fixed inset-0 w-full h-full z-20 overflow-y-auto hidden-view pt-24 pb-32 px-4 sm:px-8">
-    <div class="max-w-4xl mx-auto space-y-12">
-      <!-- Timeline Header -->
-      <div class="text-center space-y-3">
-        <span class="px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-mono">CHRONOLOGICAL ARCHIVE</span>
-        <h2 class="text-3xl sm:text-4xl font-serif font-bold text-white">时光足迹 · 岁月长卷</h2>
-        <p class="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto font-serif">记录下相遇以来的每一个微小瞬间，时光有迹可循，唯爱永恒回响。</p>
+  <section id="viewportStoryline" class="mode-viewport fixed inset-0 w-full h-full z-20 overflow-y-auto hidden-view pt-36 sm:pt-40 pb-36 px-4 sm:px-8">
+    <!-- 顶部防遮挡呼吸安全垫：确保导航栏与徽章绝不遮挡时光足迹任何文字 -->
+    <div class="h-6 sm:h-10 w-full flex-shrink-0"></div>
+    <div class="max-w-5xl mx-auto space-y-10">
+      <!-- Timeline Header with Overall Stats Banner (彻底拉开顶部距离，绝不遮挡) -->
+      <div class="text-center space-y-4 pt-2">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.25)]">
+          <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+          CHRONOLOGICAL MEMORY VAULT
+        </div>
+        <h2 class="text-3xl sm:text-5xl font-serif font-bold text-white tracking-wide">时光足迹 · 岁月长卷</h2>
+
+        <!-- 显眼的总览统计面板：清晰展示这个页面有多少照片 -->
+        <div class="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-5 px-6 py-3 rounded-2xl bg-zinc-950/85 border border-white/15 backdrop-blur-2xl shadow-2xl text-xs font-mono">
+          <div class="flex items-center gap-1.5">
+            <span class="text-rose-400 text-sm">📸</span>
+            <span class="text-white font-bold">538 张真实合照</span>
+          </div>
+          <span class="text-white/20 hidden sm:inline">•</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-sky-400 text-sm">🎬</span>
+            <span class="text-sky-200 font-bold">14 段鲜活录像</span>
+          </div>
+          <span class="text-white/20 hidden sm:inline">•</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-amber-400 text-sm">⏳</span>
+            <span class="text-amber-200 font-bold">30 个月份航程</span>
+          </div>
+          <span class="text-white/20 hidden sm:inline">•</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-rose-400 text-sm">♥</span>
+            <span class="text-rose-300 font-bold">已珍藏 552 处专属回忆</span>
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto font-serif leading-relaxed italic">
+          "记录下相遇以来的每一个微小瞬间，时光有迹可循，唯爱永恒回响。"
+        </p>
       </div>
 
       <!-- Month Filter Pills -->
@@ -150,10 +195,10 @@
         </div>
       </div>
 
-      <!-- Photo Display Container (Local Moderate Size, Never Full-screen) -->
-      <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-black/60 shadow-inner group mb-2.5">
-        <img id="showcaseImg" src="" alt="甜蜜回忆" class="w-full h-full object-cover transition-opacity duration-500 ease-out">
-        <video id="showcaseVideo" class="w-full h-full object-cover hidden" playsinline loop autoplay muted></video>
+      <!-- Photo Display Container (Adaptive Natural Ratio, 100% Zero Crop) -->
+      <div class="relative w-full min-h-[200px] max-h-[380px] rounded-xl overflow-hidden bg-black/80 shadow-inner group mb-2.5 flex items-center justify-center">
+        <img id="showcaseImg" src="" alt="甜蜜回忆" class="w-auto h-auto max-w-full max-h-[360px] object-contain transition-opacity duration-300 ease-out">
+        <video id="showcaseVideo" class="w-auto h-auto max-w-full max-h-[360px] object-contain hidden" playsinline loop autoplay muted></video>
         <!-- Nav Arrows -->
         <button id="showcasePrevBtn" class="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs opacity-70 hover:opacity-100 transition backdrop-blur-md">◀</button>
         <button id="showcaseNextBtn" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs opacity-70 hover:opacity-100 transition backdrop-blur-md">▶</button>
@@ -229,36 +274,49 @@
   <div id="climaxLetterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200 ease-out">
     <div id="climaxLetterCard" class="relative w-full max-w-2xl double-bezel transform scale-95 transition-transform duration-200 ease-out">
       <div class="double-bezel-inner p-7 sm:p-10 relative overflow-hidden bg-gradient-to-b from-zinc-900/95 via-zinc-950 to-zinc-900/95 border border-amber-500/30">
-        <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+                <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
           <div>
-            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-300/80">MEMORY SUMMARY 2022 — 2026</span>
-            <h4 class="text-xl sm:text-2xl font-serif font-bold text-white mt-1">时光长卷・致我们的两载春秋</h4>
+            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-300/80">MEMORY SUMMARY 2022 — 2026 &amp; FOREVER · 552 MOMENTS</span>
+            <h4 class="text-xl sm:text-2xl font-serif font-bold text-white mt-1">致亲爱的珍珠 · 四载春秋的深情长卷</h4>
           </div>
           <button id="closeClimaxModalBtn" class="text-zinc-400 hover:text-white text-lg w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
         </div>
 
         <div class="space-y-4 text-xs sm:text-sm leading-relaxed text-zinc-300 font-serif italic max-h-[60vh] overflow-y-auto pr-1">
-          <p class="indent-6">
-            从 2022 年春天的第一缕微风，到岁月长河里的细水长流。
+          <p class="text-amber-200/90 font-bold not-italic text-sm sm:text-base">
+            亲爱的珍珠：
           </p>
           <p class="indent-6">
-            两载春秋，七百多个日日夜夜，两万多个小时的悄然相伴。我们在夏夜的海风中举起过汽水，在初雪的冬夜揣紧过同一个口袋；走过喧嚣繁华的街角，也看过漫天璀璨的晚霞与落日。
+            展信舒颜。在这个安静的夜晚，我把这 550 多张照片、十余段鲜活的录像一一重新翻看。从 2022 年春天的第一次心动，到 2026 年新春的晨光拂晓，整整 30 个月份航程，一千四百多个日日夜夜，三万多个小时的悄然相伴……不知不觉间，我们已经一起走过了这么长的路。
           </p>
           <p class="indent-6">
-            相册里的数百张照片，记录了你每一个或搞怪、或温柔、或灿烂的笑颜。生活或许常常归于柴米油盐的平淡，但每一个被镜头定格的瞬间，都因为有你的存在而熠熠生辉。
+            故事最初的起点，在 2022 年初春微凉的风里。相册最初的那几张相片，定格了你最初望向我时的眼神与羞涩笑意。第一眼的悸动，悄悄变成了往后所有岁月里最笃定的心甘情愿。从那一天起，“我们”这两个字，有了生命中最温暖的注脚。
           </p>
           <p class="indent-6">
-            回忆是岁月写给我们的温柔长诗，而最好的篇章，永远是相视一笑的明天。谢谢你走进我的生命，愿往后的每一个春夏秋冬，我们依旧手牵着手，走过漫长岁月，直到时光尽头。
+            我还清晰记得那个夏天——林荫小道被树影切碎的斑驳阳光、手心里冒着白气的冰镇汽水，还有海风吹拂起你发梢的瞬间。黄昏把天空晕染成大片大片的橘粉色，你转过头对我笑，那一刻我在心里悄悄许下愿望：真希望时光能走得慢一点，让晚霞与你的温柔永远停留在这一秒。
+          </p>
+          <p class="indent-6">
+            后来到了初雪纷飞的冬夜。零下几度的寒风里，两只冻得发红的手紧紧揣进同一个大衣口袋，掌心传来的温度把整个冬天都烘得温热。还有跨年夜夜空里绽放的漫天烟火，在震耳欲聋的欢呼声里，我转过头看着仰望夜空的你。从那一刻起我就明白，所有关于未来的憧憬与期许，全都有了你的名字。
+          </p>
+          <p class="indent-6">
+            再后来，相册里的记忆越来越厚。相恋一周年时我们吹过山顶微凉的晨风，踩过海浪褪去的细沙；尤其是 2023 年冬天的相册里，满满当当塞下了近三百张你搞怪、大笑、撒娇的真实抓拍——每一张生动的表情、每一次毫无防备的笑容，都是我镜头里唯一且永远的女主角。
+          </p>
+          <p class="indent-6">
+            走过 2024，走过 2025，直到今天 2026。四年春秋，生活或许常常归于细水长流的平淡，但因为有你，每一顿热气腾腾的便饭、每一次生病时的陪伴、每一句日常的叮咛，都熠熠生辉、充满甜味。
+          </p>
+          <p class="indent-6">
+            这五百多张照片替我们记住了过去所有的心动，但我们之间最好的一章，永远是明天清晨睁开眼依然牵着你手的踏实。谢谢你走进我的生命，谢谢你把最好的爱和温柔交给我。往后的每一个春夏秋冬，无论风雨还是晴天，我都会紧紧牵着你的手，走过漫长岁月，直到时光的尽头。
           </p>
         </div>
 
         <div class="mt-8 pt-5 border-t border-white/10 flex items-end justify-between">
           <div>
-            <p class="text-[10px] sm:text-xs text-zinc-500 font-mono">2022.02.14 — 2026.10.25 & Beyond</p>
-            <p class="text-xs text-rose-400 font-serif italic mt-0.5">Forever With You</p>
+            <p class="text-[10px] sm:text-xs text-zinc-500 font-mono">2022.02.14 — 2026.01 &amp; Forever</p>
+            <p class="text-xs text-rose-400 font-serif italic mt-0.5">Forever With You, My Pearl</p>
           </div>
           <div class="text-right">
-            <span class="font-serif font-bold text-base sm:text-lg gradient-text-gold tracking-wider">♥ 永远爱你</span>
+            <p class="text-xs text-zinc-400 font-serif mb-1">永远爱你的</p>
+            <span class="font-serif font-bold text-base sm:text-lg gradient-text-gold tracking-wider">♥ 老公</span>
           </div>
         </div>
       </div>
@@ -276,6 +334,54 @@
 
   <!-- High-Priority Native Audio Host -->
   <audio id="mainBgmAudio" preload="auto" playsinline></audio>
+
+  
+  <!-- =========================================================================
+       Adaptive Native Aspect Ratio Fullscreen Lightbox (真实长宽比全屏大图预览灯箱，零裁剪)
+       ========================================================================= -->
+  <div id="artworkModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-2xl opacity-0 pointer-events-none transition-all duration-300 ease-out select-none p-3 sm:p-6">
+    <div id="artworkModalBackdrop" class="absolute inset-0"></div>
+
+    <div class="relative z-10 flex flex-col items-center justify-center max-w-[96vw] max-h-[94vh]">
+      <!-- Top Action Bar -->
+      <div class="w-full flex items-center justify-between pb-2 text-xs mb-1">
+        <div class="flex items-center gap-2">
+          <span id="modalCounter" class="px-3 py-1 rounded-full bg-white/10 text-rose-300 font-mono text-xs border border-white/15">01 / 552</span>
+          <span id="modalDate" class="text-zinc-400 font-mono text-xs">2022.02</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Auto Slideshow Play/Pause Button (4.5秒沉浸式放映，绝不仅有半秒) -->
+          <button id="modalPlayPauseBtn" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-rose-300 font-mono text-xs border border-white/15 transition cursor-pointer" title="开启/暂停自动放映 (4.5秒/张)">
+            <svg id="modalPlayIcon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="modalPauseIcon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            <span id="modalPlayText">自动放映</span>
+          </button>
+          <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition" title="关闭预览">✕</button>
+        </div>
+      </div>
+
+      <!-- Animated Progress Bar for Slideshow -->
+      <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-2">
+        <div id="modalProgressBar" class="h-full bg-gradient-to-r from-rose-500 to-amber-400 w-0 transition-all duration-300"></div>
+      </div>
+
+      <!-- Main Image/Video Frame (Zero-Crop Adaptive Native Ratio) -->
+      <div class="relative flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.95)] max-w-[94vw] max-h-[78vh]">
+        <img id="modalImg" src="" alt="原图预览" class="w-auto h-auto max-w-[92vw] max-h-[76vh] object-contain transition-transform duration-300">
+        <video id="modalVideo" class="w-auto h-auto max-w-[92vw] max-h-[76vh] object-contain hidden" controls playsinline></video>
+
+        <!-- Previous & Next Floating Buttons -->
+        <button id="modalPrevBtn" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-sm border border-white/20 backdrop-blur-md opacity-80 hover:opacity-100 transition">◀</button>
+        <button id="modalNextBtn" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-sm border border-white/20 backdrop-blur-md opacity-80 hover:opacity-100 transition">▶</button>
+      </div>
+
+      <!-- Bottom Caption Bar -->
+      <div class="w-full max-w-2xl text-center mt-3 px-2">
+        <h3 id="modalTitle" class="text-sm sm:text-base font-serif font-bold text-white truncate">初春萌芽・心动的序幕</h3>
+        <p id="modalDesc" class="text-xs text-zinc-400 font-serif italic mt-0.5 line-clamp-2">"故事从这里悄悄开始，第一眼的悸动，变成了往后所有的心甘情愿。"</p>
+      </div>
+    </div>
+  </div>
 
   <!-- Application Modules (High-Performance Master Architecture) -->
   <script src="js/photos-data.js"></script>
