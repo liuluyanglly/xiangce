@@ -34,8 +34,10 @@ class CelestialSphereGallery {
     // Nouver Fashion Gallery Vertical Mirror Reflection Alpha Map
     this.reflectionAlphaMap = this.createReflectionAlphaMap();
 
-    // Carousel state
+    // Carousel & Wave States
     this.groundMirror = null;
+    this.waveProgress = 0;
+    this.isWaveDragging = false;
 
     // Central Hologram & Audio Reactive Members
     this.hologramGroup = null;
@@ -766,12 +768,12 @@ class CelestialSphereGallery {
     let lookTargetX = 0, lookTargetY = 25, lookTargetZ = 0;
 
     if (shape === 'carousel') {
-      const radius = isMobile ? 480 : 660;
+      const radius = isMobile ? 560 : 760;
       camTargetX = 0;
-      camTargetY = isMobile ? 8 : 12;
-      camTargetZ = radius + (isMobile ? 220 : 260);
+      camTargetY = isMobile ? 120 : 150;
+      camTargetZ = radius + (isMobile ? 440 : 580);
       lookTargetX = 0;
-      lookTargetY = -10;
+      lookTargetY = 15;
       lookTargetZ = 0;
       if (this.groundMirror) {
         const mirrorScale = (radius * 1.5) / 880;
@@ -781,10 +783,10 @@ class CelestialSphereGallery {
       }
     } else if (shape === 'wave') {
       camTargetX = 0;
-      camTargetY = isMobile ? 100 : 130;
-      camTargetZ = isMobile ? 1180 : 1380;
+      camTargetY = isMobile ? 35 : 45;
+      camTargetZ = isMobile ? 780 : 920;
       lookTargetX = 0;
-      lookTargetY = 10;
+      lookTargetY = 20;
       lookTargetZ = 0;
       if (this.groundMirror) this.groundMirror.visible = false;
     } else if (shape === 'heart') {
@@ -811,15 +813,34 @@ class CelestialSphereGallery {
       this.controls.enabled = false;
     }
 
+    const configureControlsForShape = () => {
+      if (!this.controls) return;
+      this.controls.target.set(lookTargetX, lookTargetY, lookTargetZ);
+      this.controls.update();
+      this.controls.enabled = true;
+      if (shape === 'carousel') {
+        // 放开上下极角，允许上下自由反转俯仰，俯瞰整个奢华展厅环形与倒影
+        this.controls.minPolarAngle = 0.05;
+        this.controls.maxPolarAngle = Math.PI * 0.92;
+        this.controls.rotateSpeed = 0.85;
+        this.controls.autoRotate = true;
+        this.controls.autoRotateSpeed = 0.52;
+      } else if (shape === 'wave') {
+        this.controls.minPolarAngle = Math.PI * 0.20;
+        this.controls.maxPolarAngle = Math.PI * 0.80;
+        this.controls.autoRotate = false; // 由波浪轮播传送带自身驱动流转
+      } else {
+        this.controls.minPolarAngle = Math.PI * 0.18;
+        this.controls.maxPolarAngle = Math.PI * 0.78;
+        this.controls.autoRotate = true;
+        this.controls.autoRotateSpeed = 0.55;
+      }
+    };
+
     if (instant || typeof gsap === 'undefined') {
       this.camera.position.set(camTargetX, camTargetY, camTargetZ);
       this.camera.lookAt(lookTargetX, lookTargetY, lookTargetZ);
-      if (this.controls) {
-        this.controls.target.set(lookTargetX, lookTargetY, lookTargetZ);
-        this.controls.update();
-        this.controls.enabled = true;
-        this.controls.autoRotate = true;
-      }
+      configureControlsForShape();
     } else {
       gsap.killTweensOf(this.camera.position);
       gsap.to(this.camera.position, {
@@ -832,12 +853,7 @@ class CelestialSphereGallery {
           this.camera.lookAt(lookTargetX, lookTargetY, lookTargetZ);
         },
         onComplete: () => {
-          if (this.controls) {
-            this.controls.target.set(lookTargetX, lookTargetY, lookTargetZ);
-            this.controls.update();
-            this.controls.enabled = true;
-            this.controls.autoRotate = true;
-          }
+          configureControlsForShape();
         }
       });
     }
@@ -850,6 +866,8 @@ class CelestialSphereGallery {
 
       mesh.userData.targetPos = target.pos.clone();
       mesh.userData.targetRot = target.rot.clone();
+      mesh.userData.inWave = target.inWave || false;
+      mesh.userData.waveIndex = (typeof target.waveIndex === 'number') ? target.waveIndex : -1;
 
       // Mirror reflection is enabled ONLY in carousel mode for cards in the carousel ring
       if (mesh.userData.reflectionGroup) {
@@ -964,27 +982,52 @@ class CelestialSphereGallery {
         targets.push({ pos, rot, targetScale: 1.0 });
       }
     } else if (shape === 'wave') {
-      // Style 2: MotionSites 3D Wave Stream - 开阔舒展正弦丝带，绝无重叠穿透
-      const spanX = isMobile ? 1100 : 1600;
-      const startX = -spanX / 2;
+      // Style 2: 3D 流光轮播图传送带（展示一个，划到后面，首尾相接无限循环展示）
+      const maxWaveCards = isMobile ? 10 : 12;
+      const step = Math.max(1, Math.floor(count / maxWaveCards));
+      let waveIndex = 0;
+
       for (let i = 0; i < count; i++) {
-        const u = i / (Math.max(1, count - 1));
-        const x = startX + u * spanX;
-        const y = Math.sin(u * Math.PI * 3.2) * (isMobile ? 80 : 120);
-        const z = Math.cos(u * Math.PI * 2.4) * (isMobile ? 180 : 260);
+        const isInWave = (i % step === 0) && (waveIndex < maxWaveCards);
+        if (isInWave) {
+          const delta = ((waveIndex / maxWaveCards) - 0.5) * 2;
+          const spanX = isMobile ? 780 : 1180;
+          const x = Math.sin(delta * Math.PI) * spanX * 0.5;
+          const frontZ = 280;
+          const backZ = -220;
+          const z = ((Math.cos(delta * Math.PI) + 1) * 0.5) * (frontZ - backZ) + backZ;
+          const y = Math.sin(delta * Math.PI * 2) * (isMobile ? 35 : 55) + 20;
+          const rotY = -Math.sin(delta * Math.PI) * 0.45;
+          const rotZ = Math.cos(delta * Math.PI * 2) * 0.05;
 
-        const pos = new THREE.Vector3(x, y, z);
-        const rotY = Math.sin(u * Math.PI * 3.2) * 0.28;
-        const rotZ = Math.cos(u * Math.PI * 3.2) * 0.08;
-        const rot = new THREE.Euler(0, rotY, rotZ);
+          const isCenter = Math.abs(delta) < 0.16;
+          const distFromCenter = Math.min(1.0, Math.abs(delta) * 1.8);
+          const scale = isCenter ? (isMobile ? 1.20 : 1.35) : Math.max(0.65, 1.0 - distFromCenter * 0.28);
 
-        targets.push({ pos, rot, targetScale: 1.0 });
+          targets.push({
+            pos: new THREE.Vector3(x, y, z),
+            rot: new THREE.Euler(0, rotY, rotZ),
+            inWave: true,
+            waveIndex: waveIndex,
+            targetScale: scale
+          });
+          waveIndex++;
+        } else {
+          // 其余卡片优雅退入深空背景深处，绝不产生视觉干扰
+          const idleTheta = (i / count) * Math.PI * 2;
+          targets.push({
+            pos: new THREE.Vector3(Math.sin(idleTheta) * 100, -900, -1200),
+            rot: new THREE.Euler(0, idleTheta, 0),
+            inWave: false,
+            waveIndex: -1,
+            targetScale: 0.001
+          });
+        }
       }
     } else if (shape === 'carousel') {
-      // Style 3: 3D Fashion Gallery 时光回廊 - 奢华环形展厅与镜面倒影（完全零重叠、宽裕间距）
-      // 精选 22 张核心卡片沿大圆环排列，相邻卡片间距达 100px+，彻底消灭扑克牌式层叠遮挡！
+      // Style 3: 3D Fashion Gallery 时光回廊 - 奢华环形展厅与镜面倒影（完全零重叠、宽裕间距、精致尺寸）
       const maxRingCards = isMobile ? 18 : 22;
-      const radius = isMobile ? 580 : 780;
+      const radius = isMobile ? 560 : 760;
       const step = Math.max(1, Math.floor(count / maxRingCards));
       let ringIndex = 0;
 
@@ -1004,13 +1047,13 @@ class CelestialSphereGallery {
             pos,
             rot,
             inCarousel: true,
-            targetScale: isMobile ? 1.0 : 1.12
+            targetScale: isMobile ? 0.90 : 1.0
           });
           ringIndex++;
         } else {
           // 其余卡片优雅收拢并渐隐于圆心深处，保证主环通透纯净
           const idleTheta = (i / count) * Math.PI * 2;
-          const pos = new THREE.Vector3(Math.sin(idleTheta) * 80, -300, Math.cos(idleTheta) * 80);
+          const pos = new THREE.Vector3(Math.sin(idleTheta) * 80, -400, Math.cos(idleTheta) * 80);
           const rot = new THREE.Euler(0, idleTheta, 0);
           targets.push({
             pos,
@@ -1070,20 +1113,40 @@ class CelestialSphereGallery {
       this.checkRaycastHover();
     });
 
-    dom.addEventListener('pointerdown', () => {
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let waveProgressStart = 0;
+
+    dom.addEventListener('pointerdown', (e) => {
       this.isDragging = false;
+      pointerStartX = e.clientX;
+      pointerStartY = e.clientY;
+      if (this.currentShape === 'wave') {
+        this.isWaveDragging = true;
+        waveProgressStart = this.waveProgress;
+      }
       if (this.controls) this.controls.autoRotate = false;
       clearTimeout(this.idleResumeTimer);
     });
 
-    dom.addEventListener('pointermove', () => {
-      this.isDragging = true;
+    dom.addEventListener('pointermove', (e) => {
+      const dx = e.clientX - pointerStartX;
+      const dy = e.clientY - pointerStartY;
+      if (Math.hypot(dx, dy) > 7) {
+        this.isDragging = true;
+      }
+      if (this.isWaveDragging && this.currentShape === 'wave') {
+        // 跟手水平拖动轮播图
+        const w = window.innerWidth || 1000;
+        this.waveProgress = waveProgressStart - (dx / w) * 1.2;
+      }
     });
 
     dom.addEventListener('pointerup', (e) => {
+      this.isWaveDragging = false;
       clearTimeout(this.idleResumeTimer);
       this.idleResumeTimer = setTimeout(() => {
-        if (this.controls) {
+        if (this.controls && this.currentShape !== 'wave') {
           this.controls.autoRotate = true;
           if (this.currentShape === 'carousel') {
             this.controls.autoRotateSpeed = 0.52;
@@ -1137,8 +1200,9 @@ class CelestialSphereGallery {
 
     if (foundCard !== this.hoveredMesh) {
       if (this.hoveredMesh) {
+        const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
         const defaultS = (this.currentShape === 'carousel' && this.hoveredMesh.userData.reflectionGroup && this.hoveredMesh.userData.reflectionGroup.visible)
-          ? ((this.container?.clientWidth || window.innerWidth) < 768 ? 1.15 : 1.30)
+          ? (isMobile ? 0.90 : 1.0)
           : (this.currentShape === 'carousel' ? 0.001 : 1.0);
         if (typeof gsap !== 'undefined') {
           gsap.to(this.hoveredMesh.scale, { x: defaultS, y: defaultS, z: defaultS, duration: 0.4 });
@@ -1156,8 +1220,9 @@ class CelestialSphereGallery {
 
       if (this.hoveredMesh) {
         this.renderer.domElement.style.cursor = 'pointer';
+        const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
         const hoverS = (this.currentShape === 'carousel')
-          ? ((this.container?.clientWidth || window.innerWidth) < 768 ? 1.25 : 1.45)
+          ? (isMobile ? 1.05 : 1.15)
           : 1.18;
         if (typeof gsap !== 'undefined') {
           gsap.to(this.hoveredMesh.scale, { x: hoverS, y: hoverS, z: hoverS, duration: 0.4, ease: 'back.out(1.5)' });
@@ -1220,13 +1285,13 @@ class CelestialSphereGallery {
 
     if (this.currentShape === 'carousel') {
       const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-      const radius = isMobile ? 390 : 490;
-      targetCamPos = { x: 0, y: isMobile ? 12 : 16, z: radius + (isMobile ? 330 : 280) };
-      lookTarget = { x: 0, y: -15, z: 0 };
+      const radius = isMobile ? 560 : 760;
+      targetCamPos = { x: 0, y: isMobile ? 120 : 150, z: radius + (isMobile ? 440 : 580) };
+      lookTarget = { x: 0, y: 15, z: 0 };
     } else if (this.currentShape === 'wave') {
       const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-      targetCamPos = { x: 0, y: isMobile ? 70 : 90, z: isMobile ? 980 : 1180 };
-      lookTarget = { x: 0, y: 10, z: 0 };
+      targetCamPos = { x: 0, y: isMobile ? 35 : 45, z: isMobile ? 780 : 920 };
+      lookTarget = { x: 0, y: 20, z: 0 };
     } else if (this.currentShape === 'heart') {
       targetCamPos = { x: 160, y: 95, z: 1080 };
       lookTarget = { x: 0, y: 30, z: 0 };
@@ -1265,9 +1330,10 @@ class CelestialSphereGallery {
     }
 
     // Reset card hover scales
+    const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
     this.photoMeshes.forEach(mesh => {
       const s = (this.currentShape === 'carousel' && mesh.userData.reflectionGroup && mesh.userData.reflectionGroup.visible)
-        ? ((this.container?.clientWidth || window.innerWidth) < 768 ? 1.15 : 1.30)
+        ? (isMobile ? 0.90 : 1.0)
         : (this.currentShape === 'carousel' ? 0.001 : 1.0);
       gsap.to(mesh.scale, { x: s, y: s, z: s, duration: 0.4, ease: 'power2.out' });
     });
@@ -1319,32 +1385,74 @@ class CelestialSphereGallery {
       });
     }
 
-    // 3. Autonomous Procedural Kinetic Motion ("照片一个一个跳动" - Travelling Wave Dynamics)
-    this.photoMeshes.forEach(mesh => {
-      if (mesh !== this.hoveredMesh && mesh.userData.targetPos && !mesh.userData.isAnimating) {
-        const idx = mesh.userData.index || 0;
-        // 行波相位：以固定波速沿着卡片序号传递，使照片像多米诺骨牌与波浪琴键般一个接一个跳动
-        const waveSpeed = 2.9;
-        const waveFreq = 0.26;
-        const phase = elapsed * waveSpeed - idx * waveFreq;
-
-        // 根据模式调整跳跃高度与弹力幅度
-        const amp = (this.currentShape === 'wave') ? 10.0 : (this.currentShape === 'heart' ? 12.0 : 14.0);
-        const bounceY = Math.sin(phase) * amp;
-        const bounceZ = Math.cos(phase) * (amp * 0.45);
-        const bounceRotZ = Math.sin(phase) * 0.055;
-        const bounceScale = 1.0 + Math.sin(phase) * 0.04; // 呼吸弹跳
-
-        mesh.position.y = mesh.userData.targetPos.y + bounceY;
-        mesh.position.z = mesh.userData.targetPos.z + bounceZ;
-        mesh.rotation.z = mesh.userData.targetRot.z + bounceRotZ;
-
-        // 维持卡片基准缩放的同时叠加弹跳律动
-        const baseScale = mesh.userData.currentScale || mesh.userData.baseScale || 1.0;
-        const s = baseScale * bounceScale;
-        mesh.scale.set(s, s, s);
+    // 3. Autonomous Procedural Kinetic Motion
+    if (this.currentShape === 'wave') {
+      // 3D 流光轮播传送带：“展示一个，划到后面，首尾循环展示”
+      if (!this.isWaveDragging) {
+        this.waveProgress += 0.0016;
       }
-    });
+      const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
+      const maxWaveCards = isMobile ? 10 : 12;
+      const spanX = isMobile ? 780 : 1180;
+      const frontZ = 280;
+      const backZ = -220;
+
+      this.photoMeshes.forEach(mesh => {
+        if (mesh.userData.inWave && mesh.userData.waveIndex >= 0) {
+          const wIdx = mesh.userData.waveIndex;
+          let u = ((wIdx / maxWaveCards) + this.waveProgress) % 1.0;
+          if (u < 0) u += 1.0;
+
+          // u = 0.5 处于屏幕最前端正中央焦点展示位
+          const delta = (u - 0.5) * 2; // [-1, 1]
+
+          const x = Math.sin(delta * Math.PI) * spanX * 0.5;
+          const z = ((Math.cos(delta * Math.PI) + 1) * 0.5) * (frontZ - backZ) + backZ;
+          const y = Math.sin(delta * Math.PI * 2) * (isMobile ? 35 : 55) + 20;
+          const rotY = -Math.sin(delta * Math.PI) * 0.45;
+          const rotZ = Math.cos(delta * Math.PI * 2) * 0.05;
+
+          const isCenter = Math.abs(delta) < 0.16;
+          const distFromCenter = Math.min(1.0, Math.abs(delta) * 1.8);
+          const targetScale = isCenter ? (isMobile ? 1.20 : 1.35) : Math.max(0.65, 1.0 - distFromCenter * 0.28);
+
+          mesh.position.set(x, y, z);
+          mesh.rotation.set(0, rotY, rotZ);
+          mesh.scale.set(targetScale, targetScale, targetScale);
+
+          if (mesh.userData.borderLine) {
+            mesh.userData.borderLine.material.opacity = isCenter ? 1.0 : Math.max(0.2, 0.5 - distFromCenter * 0.3);
+          }
+          if (mesh.userData.backBorder) {
+            mesh.userData.backBorder.material.opacity = isCenter ? 1.0 : Math.max(0.2, 0.5 - distFromCenter * 0.3);
+          }
+        }
+      });
+    } else {
+      // 其它 3D 模式（心形、星球、时光回廊）：维持优雅行波呼吸律动
+      this.photoMeshes.forEach(mesh => {
+        if (mesh !== this.hoveredMesh && mesh.userData.targetPos && !mesh.userData.isAnimating) {
+          const idx = mesh.userData.index || 0;
+          const waveSpeed = 2.9;
+          const waveFreq = 0.26;
+          const phase = elapsed * waveSpeed - idx * waveFreq;
+
+          const amp = (this.currentShape === 'heart' ? 12.0 : 14.0);
+          const bounceY = Math.sin(phase) * amp;
+          const bounceZ = Math.cos(phase) * (amp * 0.45);
+          const bounceRotZ = Math.sin(phase) * 0.055;
+          const bounceScale = 1.0 + Math.sin(phase) * 0.04;
+
+          mesh.position.y = mesh.userData.targetPos.y + bounceY;
+          mesh.position.z = mesh.userData.targetPos.z + bounceZ;
+          mesh.rotation.z = mesh.userData.targetRot.z + bounceRotZ;
+
+          const baseScale = mesh.userData.currentScale || mesh.userData.baseScale || 1.0;
+          const s = baseScale * bounceScale;
+          mesh.scale.set(s, s, s);
+        }
+      });
+    }
 
     // 4. Stardust Galaxy Rotation & Pulse
     if (this.starField) {

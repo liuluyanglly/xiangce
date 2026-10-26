@@ -766,12 +766,32 @@ img, video, canvas {
 
 
 /* Floating Memory Showcase Dock (Local Cinema) */
+/* Floating Centered Memory Showcase Dock (MotionSites Glass Cinema) */
 #localShowcaseDock {
   position: fixed !important;
-  left: 24px !important;
-  bottom: 28px !important;
-  top: auto !important;
-  z-index: 45 !important;
-  width: 330px !important;
-  max-width: calc(100vw - 48px) !important;
+  left: 50% !important;
+  top: 50% !important;
+  bottom: auto !important;
+  right: auto !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 55 !important;
+  width: 380px !important;
+  max-width: min(92vw, 420px) !important;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#localShowcaseDock.hidden {
+  display: none !important;
+}
+
+#localShowcaseDock.opacity-0 {
+  opacity: 0 !important;
+  transform: translate(-50%, -46%) scale(0.95) !important;
+  pointer-events: none !important;
+}
+
+#localShowcaseDock.opacity-100 {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) scale(1.0) !important;
+  pointer-events: auto !important;
 }

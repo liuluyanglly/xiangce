@@ -580,7 +580,7 @@ class EternalApp {
     });
   }
 
-  hideClimaxModal(restoreNav = false) {
+  hideClimaxModal(restoreNav = false, resetCamera = false) {
     const modal = document.getElementById('climaxLetterModal');
     const card = document.getElementById('climaxLetterCard');
     if (modal) {
@@ -610,7 +610,7 @@ class EternalApp {
       }
     }
 
-    if (this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
+    if (resetCamera && this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
       this.sphereGallery.resetCameraFocus();
     }
   }
@@ -936,6 +936,10 @@ class EternalApp {
   // "点卡的时候自动变化，点击后，就从这一张，轮放在页面放大替换，自动展示详情，在页面局部展示"
   // -------------------------------------------------------------
   showLocalShowcase(item) {
+    if (this.hideDockTimer) {
+      clearTimeout(this.hideDockTimer);
+      this.hideDockTimer = null;
+    }
     if (item && item.isClimaxLetter) {
       if (this.sphereGallery) this.sphereGallery.focusClimaxCard();
       this.showClimaxModal();
@@ -950,10 +954,8 @@ class EternalApp {
     this.currentShowcaseIndex = foundIdx !== -1 ? foundIdx : 0;
 
     dock.classList.remove('hidden');
-    requestAnimationFrame(() => {
-      dock.classList.remove('opacity-0', 'translate-y-6');
-      dock.classList.add('opacity-100', 'translate-y-0');
-    });
+    dock.classList.remove('opacity-0');
+    dock.classList.add('opacity-100');
 
     this.isShowcasePlaying = true;
     this.updateShowcasePlayPauseBtn();
@@ -1090,16 +1092,21 @@ class EternalApp {
     }
   }
 
-  hideLocalShowcase() {
+  hideLocalShowcase(resetCamera = false) {
     if (this.showcaseTimer) clearTimeout(this.showcaseTimer);
     this.isShowcasePlaying = false;
     const dock = document.getElementById('localShowcaseDock');
     if (dock) {
-      dock.classList.remove('opacity-100', 'translate-y-0');
-      dock.classList.add('opacity-0', 'translate-y-6');
-      setTimeout(() => {
+      dock.classList.remove('opacity-100');
+      dock.classList.add('opacity-0');
+      if (this.hideDockTimer) clearTimeout(this.hideDockTimer);
+      this.hideDockTimer = setTimeout(() => {
         dock.classList.add('hidden');
-      }, 500);
+        this.hideDockTimer = null;
+      }, 400);
+    }
+    if (resetCamera && this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
+      this.sphereGallery.resetCameraFocus();
     }
   }
 
@@ -1491,7 +1498,7 @@ class EternalApp {
 
     // Floating Memory Showcase Dock Controls ("局部展示，自动轮放替换")
     const closeShowcaseBtn = document.getElementById('closeShowcaseBtn');
-    if (closeShowcaseBtn) closeShowcaseBtn.addEventListener('click', () => this.hideLocalShowcase());
+    if (closeShowcaseBtn) closeShowcaseBtn.addEventListener('click', () => this.hideLocalShowcase(true));
 
     const playPauseShowcaseBtn = document.getElementById('showcasePlayPauseBtn');
     if (playPauseShowcaseBtn) playPauseShowcaseBtn.addEventListener('click', () => this.toggleShowcasePlayPause());
@@ -1576,4 +1583,5 @@ class EternalApp {
 // Bootstrapping
 window.addEventListener('DOMContentLoaded', () => {
   window.eternalApp = new EternalApp();
+  window.app = window.eternalApp;
 });

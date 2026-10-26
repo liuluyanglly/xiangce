@@ -17,3 +17,6 @@ Thumbs.db
 # Logs and databases
 *.log
 *.sqlite
+
+# Dependencies
+node_modules/
