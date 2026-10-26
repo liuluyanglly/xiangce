@@ -153,21 +153,32 @@ class RomanticAudioSynth {
 
 class EternalApp {
   constructor() {
-    this.storageKey = 'eternal_echo_data_v1';
+    this.storageKey = 'eternal_echo_data_v3';
     this.state = this.loadState();
     
     this.currentMode = 'galaxy'; // galaxy (3D照片墙) | universe | museum | flipbook | storyline
     this.currentModalIndex = 0;
+    this.currentShowcaseIndex = 0;
+    this.showcaseTimer = null;
+    this.isShowcasePlaying = true;
     this.isImgZoomed = false;
     this.neuralNet = null;
     this.cinematicUniverse = null;
     this.sphereGallery = null;
     this.virtualMuseum = null;
     this.flipbook = null;
-    this.aiGesture = null;
 
-    // Sequential Audio Playlist System (Auto-Chained: 《理想三旬》 -> 桌面专属视频歌曲/原声 -> 更多回忆原声)
+    // Sequential Audio Playlist System (Auto-Chained: 《第57次取消发送》 -> 《理想三旬》 -> 视频原声)
     this.playlist = [
+      {
+        id: 'di57ciquxiaofasong',
+        title: '第57次取消发送',
+        artist: '菲菲公主',
+        type: 'song',
+        src: 'assets/audio/di57ciquxiaofasong.mp3',
+        fallbackSrc: 'https://music.163.com/song/media/outer/url?id=3394494163.mp3',
+        badge: '🔥 热门主打恋曲'
+      },
       {
         id: 'lixiangsanxun',
         title: '理想三旬',
@@ -185,15 +196,6 @@ class EternalApp {
         src: 'assets/audio/qingtian.mp3',
         fallbackSrc: 'https://raw.githubusercontent.com/slshenhong/music_file_zhoujielun/main/qingtian.mp3',
         badge: '🎵 经典心动恋曲'
-      },
-      {
-        id: 'desktop_video_song',
-        title: '桌面视频专属原声 · 心动画卷',
-        artist: '桌面视频 a522e4a749cc31027b9d16480116d157.mp4',
-        type: 'video_audio',
-        src: 'assets/audio/desktop_video_audio.m4a',
-        videoRef: 'assets/videos/a522e4a749cc31027b9d16480116d157.mp4',
-        badge: '🎬 桌面视频专属原声'
       },
       {
         id: 'video_audio_1',
@@ -217,8 +219,11 @@ class EternalApp {
     this.currentTrackIndex = 0;
     this.isPlayingMusic = false;
     this.synth = new RomanticAudioSynth();
-    this.audioElement = new Audio();
+    // Prioritize high-performance native audio element hosted in DOM
+    this.audioElement = document.getElementById('mainBgmAudio') || new Audio();
     this.audioElement.preload = 'auto';
+    this.audioElement.volume = 1.0;
+    this.audioElement.muted = false;
     this.audioElement.src = this.playlist[0].src;
 
     // Automatic Sequential Transition: When song finishes, immediately advance to video audio!
@@ -253,7 +258,7 @@ class EternalApp {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (!parsed.photos || parsed.photos.length <= 8 || (parsed.photos[0] && parsed.photos[0].url.includes('unsplash'))) {
+        if (!parsed.photos || parsed.photos.length < defaultPhotos.length || (parsed.photos[0] && parsed.photos[0].url.includes('unsplash'))) {
           parsed.photos = defaultPhotos;
         }
         return parsed;
@@ -296,7 +301,7 @@ class EternalApp {
     // 3. Initialize Master 3D Spatial Gallery (CelestialSphereGallery)
     if (document.getElementById('sphereContainer') && typeof CelestialSphereGallery !== 'undefined') {
       this.sphereGallery = new CelestialSphereGallery('sphereContainer', {
-        onSelectPhoto: (photo) => this.showArtworkModal(photo),
+        onSelectPhoto: (photo) => this.showLocalShowcase(photo),
         onShowLetter: () => this.showClimaxModal()
       });
       this.sphereGallery.loadPhotos(this.state.photos);
@@ -311,22 +316,11 @@ class EternalApp {
       }
     }
 
-    // 5. Initialize AI Vision Gesture Engine
-    if (typeof AIGestureEngine !== 'undefined') {
-      try {
-        this.aiGesture = new AIGestureEngine({
-          onHeart: () => this.celebrateHeart(),
-          onSwipeLeft: () => this.celebrateHeart(),
-          onSwipeRight: () => this.celebrateHeart(),
-          onVictory: () => this.celebrateHeart()
-        });
-      } catch (e) {
-        console.warn('AI gesture note:', e);
-      }
-    }
+// 5. AI Vision Gesture Engine removed
 
-    // 6. Build Storyline Months
+    // 6. Build Storyline Months & Month Filter Pills
     this.renderStorylineMonths();
+    this.initMonthFilterBar();
 
     // 7. Bind All Listeners
     this.bindDOMEvents();
@@ -334,13 +328,13 @@ class EternalApp {
     // 8. Auto-dismiss splash screen on first touch/click
     this.setupEntranceOverlay();
 
-    // 9. Attempt direct unmuted audio playback immediately on page open (理想三旬)
+    // 9. Attempt direct unmuted audio playback immediately on page open
     this.attemptDirectAutoplay();
   }
 
   initMonthFilterBar() {
     const container = document.getElementById('monthFilterContainer');
-    if (!container || typeof window.REAL_MONTHS_SUMMARY === 'undefined') return;
+    if (!container) return;
 
     container.innerHTML = '';
     
@@ -355,21 +349,42 @@ class EternalApp {
     });
     container.appendChild(allPill);
 
-    // Each month
-    window.REAL_MONTHS_SUMMARY.forEach(m => {
+    // Group photos dynamically by month
+    const monthStats = {};
+    this.state.photos.forEach(p => {
+      const m = p.month || (p.date ? p.date.slice(0, 7) : '其他');
+      monthStats[m] = (monthStats[m] || 0) + 1;
+    });
+
+    // Sort months in chronological order
+    const sortedMonths = Object.keys(monthStats).sort();
+    sortedMonths.forEach(m => {
       const pill = document.createElement('button');
       pill.className = 'month-pill';
-      pill.innerHTML = `<span>${m.month} (${m.count})</span>`;
+      pill.innerHTML = `<span>${m} (${monthStats[m]})</span>`;
       pill.addEventListener('click', () => {
         document.querySelectorAll('.month-pill').forEach(p => p.classList.remove('active'));
         pill.classList.add('active');
-        this.filterByMonth(m.month);
+        this.filterByMonth(m);
       });
       container.appendChild(pill);
     });
   }
 
   filterByMonth(month) {
+    if (this.currentMode === 'storyline') {
+      if (month === 'all') {
+        const viewport = document.getElementById('viewportStoryline');
+        if (viewport) viewport.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const targetSection = document.getElementById(`month-section-${month}`);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+      return;
+    }
+
     let filtered = this.state.photos;
     if (month !== 'all') {
       filtered = this.state.photos.filter(p => p.month === month);
@@ -383,16 +398,40 @@ class EternalApp {
 
   renderStorylineMonths() {
     const container = document.getElementById('storylineMonthsContainer');
-    if (!container || typeof window.REAL_MONTHS_SUMMARY === 'undefined') return;
+    if (!container) return;
 
     container.innerHTML = '';
 
-    window.REAL_MONTHS_SUMMARY.forEach(group => {
-      const groupPhotos = this.state.photos.filter(p => p.month === group.month);
+    // Group all photos dynamically by month
+    const groups = {};
+    this.state.photos.forEach(p => {
+      const m = p.month || (p.date ? p.date.slice(0, 7) : '其他');
+      p.month = m;
+      if (!groups[m]) groups[m] = [];
+      groups[m].push(p);
+    });
+
+    // Provide default meta lookup from REAL_MONTHS_SUMMARY
+    const metaMap = {};
+    if (typeof window.REAL_MONTHS_SUMMARY !== 'undefined') {
+      window.REAL_MONTHS_SUMMARY.forEach(item => {
+        metaMap[item.month] = item;
+      });
+    }
+
+    const sortedMonths = Object.keys(groups).sort();
+    sortedMonths.forEach(month => {
+      const groupPhotos = groups[month];
       if (groupPhotos.length === 0) return;
 
+      const meta = metaMap[month] || {
+        title: `${month} 独家甜蜜回忆`,
+        desc: '定格每一个闪闪发光的瞬间，爱在日常，岁岁年年。'
+      };
+
       const section = document.createElement('div');
-      section.className = 'double-bezel';
+      section.className = 'double-bezel scroll-mt-24';
+      section.id = `month-section-${month}`;
 
       const inner = document.createElement('div');
       inner.className = 'double-bezel-inner p-5 sm:p-8';
@@ -415,11 +454,11 @@ class EternalApp {
               </div>
             ` : ''}
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">
-              <span class="text-[10px] font-mono text-rose-300">${photo.date}</span>
+              <span class="text-[10px] font-mono text-rose-300">${photo.date || month}</span>
               <span class="text-xs font-serif text-white truncate">${photo.title}</span>
             </div>
             <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[9px] font-mono text-rose-300 border border-white/10">
-              ${photo.date.slice(5)}
+              ${photo.date ? photo.date.slice(5) : month}
             </div>
           </div>
         `;
@@ -429,10 +468,10 @@ class EternalApp {
         <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-white/10 gap-2">
           <div>
             <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-[10px] font-mono text-rose-400 mb-1">
-              <span>♥</span><span>${group.month}</span>
+              <span>♥</span><span>${month}</span>
             </div>
-            <h4 class="text-xl sm:text-2xl font-serif font-bold text-white">${group.title}</h4>
-            <p class="text-xs text-zinc-400 font-serif italic mt-1 max-w-xl">"${group.desc}"</p>
+            <h4 class="text-xl sm:text-2xl font-serif font-bold text-white">${meta.title}</h4>
+            <p class="text-xs text-zinc-400 font-serif italic mt-1 max-w-xl">"${meta.desc}"</p>
           </div>
           <span class="text-xs font-mono text-zinc-500 self-start sm:self-auto">${groupPhotos.length} 张珍贵瞬间</span>
         </div>
@@ -541,7 +580,7 @@ class EternalApp {
     });
   }
 
-  hideClimaxModal() {
+  hideClimaxModal(restoreNav = false) {
     const modal = document.getElementById('climaxLetterModal');
     const card = document.getElementById('climaxLetterCard');
     if (modal) {
@@ -553,20 +592,26 @@ class EternalApp {
       card.classList.remove('scale-100');
     }
 
-    // Restore active tab to current shape or mode
-    if (this.currentMode === 'storyline') {
-      const storyTab = document.getElementById('navStorylineBtn');
-      if (storyTab) {
+    // Only restore previous active tab if explicitly requested (e.g., closing popup manually)
+    if (restoreNav) {
+      if (this.currentMode === 'storyline') {
+        const storyTab = document.getElementById('navStorylineBtn');
+        if (storyTab) {
+          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+          storyTab.classList.add('active');
+          return;
+        }
+      }
+      const curShape = (this.sphereGallery && this.sphereGallery.currentShape) || 'heart';
+      const activeTab = document.querySelector(`.nav-tab[data-shape="${curShape}"]`);
+      if (activeTab) {
         document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-        storyTab.classList.add('active');
-        return;
+        activeTab.classList.add('active');
       }
     }
-    const curShape = (this.sphereGallery && this.sphereGallery.currentShape) || 'heart';
-    const activeTab = document.querySelector(`.nav-tab[data-shape="${curShape}"]`);
-    if (activeTab) {
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      activeTab.classList.add('active');
+
+    if (this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
+      this.sphereGallery.resetCameraFocus();
     }
   }
 
@@ -578,6 +623,17 @@ class EternalApp {
     if (titleEl) titleEl.textContent = `${this.state.lover1} & ${this.state.lover2}`;
     if (heroTitleEl) heroTitleEl.textContent = `${this.state.lover1} & ${this.state.lover2}`;
     if (quoteEl) quoteEl.textContent = `"${this.state.loveQuote}"`;
+
+    this.updateMemoryStats();
+  }
+
+  updateMemoryStats() {
+    const statsEl = document.getElementById('headerMemoryStats');
+    if (statsEl && this.state && this.state.photos) {
+      const count = this.state.photos.length;
+      const videoCount = this.state.photos.filter(p => p.isVideo).length;
+      statsEl.textContent = `已珍藏 ${count} 处专属回忆${videoCount > 0 ? ` · ${videoCount} 部动态录像` : ''}`;
+    }
   }
 
   startLoveTimer() {
@@ -618,17 +674,31 @@ class EternalApp {
     const galaxyEl = document.getElementById('viewportGalaxy');
     const storylineEl = document.getElementById('viewportStoryline');
 
+    // Always securely close any open fullscreen popups when switching viewports
+    this.hideArtworkModal();
+    this.hideClimaxModal();
+
     if (mode === 'galaxy') {
-      if (galaxyEl) galaxyEl.classList.remove('hidden-view');
-      if (storylineEl) storylineEl.classList.add('hidden-view');
-      if (this.sphereGallery) {
-        this.sphereGallery.applyLayout(this.sphereGallery.currentShape);
+      if (storylineEl) {
+        storylineEl.classList.add('hidden-view');
       }
+      if (galaxyEl) {
+        galaxyEl.classList.remove('hidden-view');
+        if (typeof gsap !== 'undefined') {
+          gsap.fromTo(galaxyEl, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: 'power2.out' });
+        }
+      }
+      // Viewport switched to galaxy; target shape will be applied directly by caller
     } else if (mode === 'storyline') {
-      if (galaxyEl) galaxyEl.classList.add('hidden-view');
+      if (galaxyEl) {
+        galaxyEl.classList.add('hidden-view');
+      }
       if (storylineEl) {
         storylineEl.classList.remove('hidden-view');
         storylineEl.scrollTop = 0;
+        if (typeof gsap !== 'undefined') {
+          gsap.fromTo(storylineEl, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' });
+        }
       }
     }
   }
@@ -650,30 +720,56 @@ class EternalApp {
   }
 
   toggleMusic() {
+    // 1. Explicitly resume AudioContext to guarantee zero silent freeze
+    if (this.sphereGallery && this.sphereGallery.audioCtx && this.sphereGallery.audioCtx.state === 'suspended') {
+      this.sphereGallery.audioCtx.resume().catch(e => console.log(e));
+    }
+
     if (this.isPlayingMusic) {
       this.audioElement.pause();
       if (this.synth) this.synth.stop();
       this.isPlayingMusic = false;
       this.syncMusicUI(false);
+      this.showToast('⏸ 已暂停播放');
     } else {
+      this.audioElement.volume = 1.0;
+      this.audioElement.muted = false;
+
+      const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
+
       if (this.sphereGallery) {
         this.sphereGallery.connectAudio(this.audioElement);
       }
+
       const playPromise = this.audioElement.play();
       if (playPromise !== undefined) {
         playPromise.then(() => {
           this.isPlayingMusic = true;
           this.syncMusicUI(true);
+          this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
         }).catch(err => {
-          console.warn('Audio MP3 blocked, engaging romantic web audio synth:', err);
-          if (this.synth) this.synth.start();
-          this.isPlayingMusic = true;
-          this.syncMusicUI(true);
+          console.warn('Audio MP3 direct play restricted, engaging fallback:', err);
+          if (track.fallbackSrc) {
+            this.audioElement.src = track.fallbackSrc;
+            this.audioElement.play().then(() => {
+              this.isPlayingMusic = true;
+              this.syncMusicUI(true);
+              this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
+            }).catch(e => {
+              if (this.synth) {
+                this.synth.start();
+                this.isPlayingMusic = true;
+                this.syncMusicUI(true);
+                this.showToast('🎶 正在播放：浪漫钢琴心跳旋律');
+              }
+            });
+          } else if (this.synth) {
+            this.synth.start();
+            this.isPlayingMusic = true;
+            this.syncMusicUI(true);
+            this.showToast('🎶 正在播放：浪漫钢琴心跳旋律');
+          }
         });
-      } else {
-        if (this.synth) this.synth.start();
-        this.isPlayingMusic = true;
-        this.syncMusicUI(true);
       }
     }
   }
@@ -683,8 +779,13 @@ class EternalApp {
     this.currentTrackIndex = index;
     const track = this.playlist[this.currentTrackIndex];
     this.audioElement.src = track.src;
+    this.audioElement.volume = 1.0;
+    this.audioElement.muted = false;
 
     if (this.sphereGallery) {
+      if (this.sphereGallery.audioCtx && this.sphereGallery.audioCtx.state === 'suspended') {
+        this.sphereGallery.audioCtx.resume().catch(e => console.log(e));
+      }
       this.sphereGallery.connectAudio(this.audioElement);
     }
 
@@ -698,7 +799,17 @@ class EternalApp {
         console.warn('Track play restricted:', err);
         if (track.fallbackSrc) {
           this.audioElement.src = track.fallbackSrc;
-          this.audioElement.play().catch(e => console.warn(e));
+          this.audioElement.play().then(() => {
+            this.isPlayingMusic = true;
+            this.syncMusicUI(true);
+            this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
+          }).catch(e => {
+            if (this.synth) {
+              this.synth.start();
+              this.isPlayingMusic = true;
+              this.syncMusicUI(true);
+            }
+          });
         }
       });
     }
@@ -820,6 +931,178 @@ class EternalApp {
     });
   }
 
+  // -------------------------------------------------------------
+  // Floating Memory Showcase Dock (MotionSites Luxury Cinema)
+  // "点卡的时候自动变化，点击后，就从这一张，轮放在页面放大替换，自动展示详情，在页面局部展示"
+  // -------------------------------------------------------------
+  showLocalShowcase(item) {
+    if (item && item.isClimaxLetter) {
+      if (this.sphereGallery) this.sphereGallery.focusClimaxCard();
+      this.showClimaxModal();
+      return;
+    }
+
+    const dock = document.getElementById('localShowcaseDock');
+    if (!dock) return;
+
+    // 找到被点击卡片在相册列表中的索引（“就从这一张开始”）
+    const foundIdx = this.state.photos.findIndex(p => p.url === item.url || p.id === item.id);
+    this.currentShowcaseIndex = foundIdx !== -1 ? foundIdx : 0;
+
+    dock.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      dock.classList.remove('opacity-0', 'translate-y-6');
+      dock.classList.add('opacity-100', 'translate-y-0');
+    });
+
+    this.isShowcasePlaying = true;
+    this.updateShowcasePlayPauseBtn();
+    this.renderShowcaseContent(false);
+    this.startShowcaseAutoPlay();
+  }
+
+  renderShowcaseContent(animate = true) {
+    const item = this.state.photos[this.currentShowcaseIndex];
+    if (!item) return;
+
+    const imgEl = document.getElementById('showcaseImg');
+    const videoEl = document.getElementById('showcaseVideo');
+    const titleEl = document.getElementById('showcaseTitle');
+    const dateEl = document.getElementById('showcaseDate');
+    const descEl = document.getElementById('showcaseDesc');
+    const counterEl = document.getElementById('showcaseCounter');
+    const progressBar = document.getElementById('showcaseProgressBar');
+
+    const targetUrl = (window.PHOTO_THUMBS_DATA && window.PHOTO_THUMBS_DATA[item.url])
+      ? window.PHOTO_THUMBS_DATA[item.url]
+      : item.url;
+
+    if (item.isVideo && item.videoUrl) {
+      if (imgEl) imgEl.classList.add('hidden');
+      if (videoEl) {
+        videoEl.classList.remove('hidden');
+        videoEl.src = item.videoUrl;
+        videoEl.play().catch(() => {});
+      }
+    } else {
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.classList.add('hidden');
+        videoEl.src = '';
+      }
+      if (imgEl) {
+        imgEl.classList.remove('hidden');
+        if (animate && typeof gsap !== 'undefined') {
+          gsap.fromTo(imgEl, { opacity: 0.3, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.45, ease: 'power2.out' });
+        }
+        imgEl.src = targetUrl;
+      }
+    }
+
+    if (titleEl) titleEl.textContent = item.title || '甜蜜瞬间';
+    if (dateEl) dateEl.textContent = item.date || item.month || 'Forever';
+    if (descEl) descEl.textContent = item.desc || '每一张照片都是时间写给我们的浪漫情书。';
+    if (counterEl) {
+      const cur = String(this.currentShowcaseIndex + 1).padStart(2, '0');
+      const total = String(this.state.photos.length).padStart(2, '0');
+      counterEl.textContent = `${cur} / ${total}`;
+    }
+
+    // 重置并启动进度条动画（3.5秒）
+    if (progressBar) {
+      progressBar.style.transition = 'none';
+      progressBar.style.width = '0%';
+      requestAnimationFrame(() => {
+        if (this.isShowcasePlaying) {
+          progressBar.style.transition = 'width 3.5s linear';
+          progressBar.style.width = '100%';
+        }
+      });
+    }
+
+    // 联动 3D 场景微聚焦
+    if (this.sphereGallery && this.sphereGallery.photoMeshes) {
+      const mesh = this.sphereGallery.photoMeshes.find(m => m.userData.url === item.url || m.userData.id === item.id);
+      if (mesh && typeof gsap !== 'undefined') {
+        gsap.to(mesh.scale, {
+          x: (mesh.userData.baseScale || 1.0) * 1.18,
+          y: (mesh.userData.baseScale || 1.0) * 1.18,
+          z: (mesh.userData.baseScale || 1.0) * 1.18,
+          duration: 0.5,
+          yoyo: true,
+          repeat: 1
+        });
+      }
+    }
+  }
+
+  startShowcaseAutoPlay() {
+    if (this.showcaseTimer) clearTimeout(this.showcaseTimer);
+    if (!this.isShowcasePlaying) return;
+
+    this.showcaseTimer = setTimeout(() => {
+      this.showcaseNext();
+    }, 3500);
+  }
+
+  showcaseNext() {
+    if (this.state.photos.length === 0) return;
+    this.currentShowcaseIndex = (this.currentShowcaseIndex + 1) % this.state.photos.length;
+    this.renderShowcaseContent(true);
+    this.startShowcaseAutoPlay();
+  }
+
+  showcasePrev() {
+    if (this.state.photos.length === 0) return;
+    this.currentShowcaseIndex = (this.currentShowcaseIndex - 1 + this.state.photos.length) % this.state.photos.length;
+    this.renderShowcaseContent(true);
+    this.startShowcaseAutoPlay();
+  }
+
+  toggleShowcasePlayPause() {
+    this.isShowcasePlaying = !this.isShowcasePlaying;
+    this.updateShowcasePlayPauseBtn();
+    const progressBar = document.getElementById('showcaseProgressBar');
+    if (this.isShowcasePlaying) {
+      this.renderShowcaseContent(false);
+      this.startShowcaseAutoPlay();
+    } else {
+      if (this.showcaseTimer) clearTimeout(this.showcaseTimer);
+      if (progressBar) {
+        const computedWidth = window.getComputedStyle(progressBar).width;
+        progressBar.style.transition = 'none';
+        progressBar.style.width = computedWidth;
+      }
+    }
+  }
+
+  updateShowcasePlayPauseBtn() {
+    const playIcon = document.getElementById('showcasePlayIcon');
+    const pauseIcon = document.getElementById('showcasePauseIcon');
+    if (playIcon && pauseIcon) {
+      if (this.isShowcasePlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    }
+  }
+
+  hideLocalShowcase() {
+    if (this.showcaseTimer) clearTimeout(this.showcaseTimer);
+    this.isShowcasePlaying = false;
+    const dock = document.getElementById('localShowcaseDock');
+    if (dock) {
+      dock.classList.remove('opacity-100', 'translate-y-0');
+      dock.classList.add('opacity-0', 'translate-y-6');
+      setTimeout(() => {
+        dock.classList.add('hidden');
+      }, 500);
+    }
+  }
+
   showArtworkModal(item) {
     if (item && item.isClimaxLetter) {
       if (this.sphereGallery) this.sphereGallery.focusClimaxCard();
@@ -923,6 +1206,11 @@ class EternalApp {
       const imgEl = document.getElementById('modalImg');
       if (imgEl) imgEl.style.transform = 'scale(1)';
       this.isImgZoomed = false;
+
+      // Smoothly reset 3D camera to prevent shape distortion
+      if (this.sphereGallery && typeof this.sphereGallery.resetCameraFocus === 'function') {
+        this.sphereGallery.resetCameraFocus();
+      }
     }
   }
 
@@ -965,63 +1253,84 @@ class EternalApp {
     const overlay = document.getElementById('entranceOverlay');
     if (!overlay) return;
 
-    const enterApp = () => {
+    const dismissOverlay = (triggerCelebration = false) => {
+      if (overlay.classList.contains('pointer-events-none')) return;
       overlay.classList.add('opacity-0', 'pointer-events-none');
-      setTimeout(() => overlay.remove(), 400);
+      setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 350);
 
-      // Trigger first celebration & play music (理想三旬)
       if (!this.isPlayingMusic) {
         this.toggleMusic();
       }
-      this.celebrateHeart();
-
-      // Try starting AI gesture after user gesture
-      setTimeout(() => {
-        if (this.aiGesture) this.aiGesture.start();
-      }, 600);
-
-      window.removeEventListener('pointerdown', enterApp);
-      window.removeEventListener('touchstart', enterApp);
+      if (triggerCelebration) {
+        this.celebrateHeart();
+      }
     };
 
-    window.addEventListener('pointerdown', enterApp);
-    window.addEventListener('touchstart', enterApp);
+    overlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismissOverlay(true);
+    });
+
+    const onUserTouch = () => {
+      dismissOverlay(false);
+      window.removeEventListener('pointerdown', onUserTouch);
+      window.removeEventListener('touchstart', onUserTouch);
+    };
+
+    window.addEventListener('pointerdown', onUserTouch, { passive: true, once: true });
+    window.addEventListener('touchstart', onUserTouch, { passive: true, once: true });
   }
 
   bindDOMEvents() {
-    // Top Island Nav: Shape Switchers & Mode Navigation
+    // Top Island Nav: MotionSites Spring Micro-Interactions & Shape Switchers (Instant Single-Click Response)
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
+      const handleSwitch = (e) => {
+        if (e) {
+          e.preventDefault();
+        }
+
         const shape = tab.dataset.shape;
         const mode = tab.dataset.mode;
+        const tabId = tab.id;
 
-        if (shape) {
-          this.switchMode('galaxy');
-          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          if (this.sphereGallery) {
-            this.sphereGallery.applyLayout(shape);
-          }
-        } else if (mode === 'storyline') {
-          this.switchMode('storyline');
-          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-        }
-      });
-    });
-
-    // Climax Memory Letter Nav Button (Instant 0ms Tactile Trigger)
-    const climaxBtn = document.getElementById('navClimaxLetterBtn');
-    if (climaxBtn) {
-      climaxBtn.addEventListener('click', () => {
+        // Visual Active State: Instant UI Highlighting
         document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-        climaxBtn.classList.add('active');
-        this.showClimaxModal();
-        if (this.sphereGallery) {
-          this.sphereGallery.focusClimaxCard();
+        tab.classList.add('active');
+
+        // MotionSites Haptic Bounce Feedback
+        if (typeof gsap !== 'undefined') {
+          gsap.fromTo(tab, { scale: 0.94 }, { scale: 1.0, duration: 0.25, ease: 'back.out(2.0)' });
         }
-      });
-    }
+
+        // Instantly dismiss audio pill on tab switch
+        const overlay = document.getElementById('entranceOverlay');
+        if (overlay) {
+          overlay.classList.add('opacity-0', 'pointer-events-none');
+          setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 300);
+          if (!this.isPlayingMusic) this.toggleMusic();
+        }
+
+        if (tabId === 'navClimaxLetterBtn') {
+          this.showClimaxModal();
+          if (this.sphereGallery) this.sphereGallery.focusClimaxCard();
+        } else {
+          this.hideClimaxModal();
+          this.hideArtworkModal();
+          this.hideLocalShowcase();
+
+          if (shape) {
+            this.switchMode('galaxy');
+            if (this.sphereGallery) {
+              this.sphereGallery.applyLayout(shape);
+            }
+          } else if (mode === 'storyline' || tabId === 'navStorylineBtn') {
+            this.switchMode('storyline');
+          }
+        }
+      };
+
+      tab.addEventListener('click', handleSwitch);
+    });
 
     // Vinyl Player Play Button
     const musicBtn = document.getElementById('musicToggleBtn');
@@ -1138,9 +1447,14 @@ class EternalApp {
 
         this.saveState();
         this.renderCoupleInfo();
-        this.flipbook.renderBook(this.state.photos, { lover1: this.state.lover1, lover2: this.state.lover2 });
+        this.updateMemoryStats();
+        this.renderStorylineMonths();
+        this.initMonthFilterBar();
+        if (this.sphereGallery) this.sphereGallery.loadPhotos(this.state.photos);
+        if (this.flipbook) this.flipbook.renderBook(this.state.photos, { lover1: this.state.lover1, lover2: this.state.lover2 });
         drawerBackdrop.classList.remove('active');
         this.celebrateHeart();
+        this.showToast('✨ 专属浪漫定制已保存，所有数据已即刻同步生效！');
       });
     }
 
@@ -1166,60 +1480,82 @@ class EternalApp {
     });
 
     const closeClimaxModalBtn = document.getElementById('closeClimaxModalBtn');
-    if (closeClimaxModalBtn) closeClimaxModalBtn.addEventListener('click', () => this.hideClimaxModal());
+    if (closeClimaxModalBtn) closeClimaxModalBtn.addEventListener('click', () => this.hideClimaxModal(true));
 
     const climaxModal = document.getElementById('climaxLetterModal');
     if (climaxModal) {
       climaxModal.addEventListener('click', (e) => {
-        if (e.target === climaxModal) this.hideClimaxModal();
+        if (e.target === climaxModal) this.hideClimaxModal(true);
       });
     }
 
-    // Photo Upload Handler (FileReader -> base64)
+    // Floating Memory Showcase Dock Controls ("局部展示，自动轮放替换")
+    const closeShowcaseBtn = document.getElementById('closeShowcaseBtn');
+    if (closeShowcaseBtn) closeShowcaseBtn.addEventListener('click', () => this.hideLocalShowcase());
+
+    const playPauseShowcaseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseShowcaseBtn) playPauseShowcaseBtn.addEventListener('click', () => this.toggleShowcasePlayPause());
+
+    const nextShowcaseBtn = document.getElementById('showcaseNextBtn');
+    if (nextShowcaseBtn) nextShowcaseBtn.addEventListener('click', () => this.showcaseNext());
+
+    const prevShowcaseBtn = document.getElementById('showcasePrevBtn');
+    if (prevShowcaseBtn) prevShowcaseBtn.addEventListener('click', () => this.showcasePrev());
+
+    // Photo & Video Upload Handler (FileReader -> base64 persistence & instant sync)
     const photoUploadInput = document.getElementById('photoUploadInput');
     if (photoUploadInput) {
       photoUploadInput.addEventListener('change', (e) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
 
-        Array.from(files).forEach((file) => {
+        let loadedCount = 0;
+        const total = files.length;
+        const todayStr = new Date().toISOString().split('T')[0];
+        const monthStr = todayStr.slice(0, 7);
+
+        files.forEach((file) => {
           const reader = new FileReader();
           reader.onload = (event) => {
+            const isVideo = file.type.startsWith('video/');
+            const resultUrl = event.target.result;
+
             this.state.photos.unshift({
               id: Date.now() + Math.random(),
-              url: event.target.result,
+              url: resultUrl,
+              videoUrl: isVideo ? resultUrl : undefined,
+              isVideo: isVideo,
+              month: monthStr,
               title: file.name.replace(/\.[^/.]+$/, ''),
-              date: new Date().toISOString().split('T')[0],
-              desc: '在特别的日子里，记录下这闪闪发光的瞬间。'
+              date: todayStr,
+              desc: isVideo ? '在特别的日子里，记录下这闪闪发光的动态瞬间。' : '在特别的日子里，记录下这闪闪发光的瞬间。'
             });
-            this.saveState();
-            // Refresh 3D views
-            if (this.cinematicUniverse) this.cinematicUniverse.loadPhotos(this.state.photos);
-            if (this.sphereGallery) this.sphereGallery.loadPhotos(this.state.photos);
-            if (this.virtualMuseum) this.virtualMuseum.loadArtworks(this.state.photos);
-            if (this.flipbook) this.flipbook.renderBook(this.state.photos, { lover1: this.state.lover1, lover2: this.state.lover2 });
+
+            loadedCount++;
+            if (loadedCount === total) {
+              // 1. Persist state
+              this.saveState();
+              // 2. Real-time update left-side header memory statistics (添加多少就展示多少)
+              this.updateMemoryStats();
+              // 3. Re-render chronological journey & dynamic month filters
+              this.renderStorylineMonths();
+              this.initMonthFilterBar();
+              // 4. Reload 3D spatial photo gallery
+              if (this.sphereGallery) this.sphereGallery.loadPhotos(this.state.photos);
+              if (this.virtualMuseum) this.virtualMuseum.loadArtworks(this.state.photos);
+              if (this.flipbook) this.flipbook.renderBook(this.state.photos, { lover1: this.state.lover1, lover2: this.state.lover2 });
+
+              // 5. Visual celebratory feedback
+              this.showToast(`✨ 成功珍藏 ${total} 处新回忆！左侧详情与时光足迹已同步展示全部数据。`);
+              this.celebrateHeart();
+            }
           };
           reader.readAsDataURL(file);
         });
-
-        alert('照片添加成功！已自动存入浏览器本地相册。');
       });
     }
 
-    // Camera AI Toggle Button in HUD
-    const aiToggleBtn = document.getElementById('aiHudPill');
-    const aiVideoWrapper = document.getElementById('aiVideoWrapper');
-    if (aiToggleBtn && aiVideoWrapper) {
-      aiToggleBtn.addEventListener('click', () => {
-        if (!this.aiGesture.isActive) {
-          this.aiGesture.start();
-          aiVideoWrapper.classList.remove('opacity-0', 'pointer-events-none');
-        } else {
-          this.aiGesture.stop();
-          aiVideoWrapper.classList.add('opacity-0', 'pointer-events-none');
-        }
-      });
-    }
+
 
     // Museum Navigation Pill buttons
     const prevArtBtn = document.getElementById('prevArtBtn');

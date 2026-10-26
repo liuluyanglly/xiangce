@@ -31,8 +31,8 @@ class CelestialSphereGallery {
     this.hoveredMesh = null;
     this.clock = new THREE.Clock();
 
-    // Exploding Cube state
-    this.isCubeExploded = false;
+    // Nouver Fashion Gallery Vertical Mirror Reflection Alpha Map
+    this.reflectionAlphaMap = this.createReflectionAlphaMap();
 
     // Carousel state
     this.groundMirror = null;
@@ -212,11 +212,20 @@ class CelestialSphereGallery {
   }
 
   // -------------------------------------------------------------
-  // Real-Time Web Audio Analyzer Integration
+  // Real-Time Web Audio Analyzer Integration (Safe Zero-Mute Architecture)
+  // Direct speaker output is ALWAYS guaranteed, never hijacked or muted.
   // -------------------------------------------------------------
   connectAudio(audioElement) {
     if (this.audioConnected || !audioElement) return;
     try {
+      // If running on file: protocol or restricted environment, avoid createMediaElementSource hijacking
+      const isFileProtocol = (typeof window !== 'undefined' && window.location.protocol === 'file:');
+      if (isFileProtocol) {
+        // Safe synthetic visual pulse: Keeps native audio pristine & unmuted through speakers!
+        this.audioConnected = false;
+        return;
+      }
+
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
 
@@ -229,19 +238,48 @@ class CelestialSphereGallery {
       source.connect(analyser);
       analyser.connect(audioCtx.destination);
 
+      this.audioCtx = audioCtx;
       this.audioAnalyser = analyser;
       this.audioData = new Uint8Array(analyser.frequencyBinCount);
       this.audioConnected = true;
 
-      const resumeCtx = () => {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        window.removeEventListener('pointerdown', resumeCtx);
+      const ensureAudioRunning = () => {
+        if (this.audioCtx && this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume().catch(e => console.log('AudioContext auto-resume note:', e));
+        }
       };
-      window.addEventListener('pointerdown', resumeCtx, { once: true });
+      ensureAudioRunning();
+      audioElement.addEventListener('play', ensureAudioRunning);
+      audioElement.addEventListener('playing', ensureAudioRunning);
+      window.addEventListener('pointerdown', ensureAudioRunning, { once: false });
+      window.addEventListener('touchstart', ensureAudioRunning, { once: false });
     } catch (e) {
-      console.warn('Audio analyzer connected via synthetic pulse fallback:', e);
+      console.warn('Audio analyzer connected via synthetic pulse fallback (speaker pristine):', e);
       this.audioConnected = false;
     }
+  }
+
+  // -------------------------------------------------------------
+  // Nouver Fashion Gallery Vertical Mirror Reflection Alpha Map
+  // -------------------------------------------------------------
+  createReflectionAlphaMap() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.58)');
+    grad.addColorStop(0.18, 'rgba(255, 255, 255, 0.38)');
+    grad.addColorStop(0.65, 'rgba(255, 255, 255, 0.12)');
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 256);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
+    return tex;
   }
 
   // -------------------------------------------------------------
@@ -315,16 +353,69 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   // Dynamic Texture Generators (Letter Cover + Fallback Card)
   // -------------------------------------------------------------
-  createFallbackTexture(title = '甜蜜瞬间') {
+  createFallbackTexture(title = '甜蜜瞬间', date = '') {
     const cvs = document.createElement('canvas');
-    cvs.width = 256; cvs.height = 340;
+    cvs.width = 320; cvs.height = 420;
     const ctx = cvs.getContext('2d');
-    const grad = ctx.createLinearGradient(0, 0, 256, 340);
-    grad.addColorStop(0, '#2e1022');
-    grad.addColorStop(1, '#0e0b16');
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 340);
-    ctx.fillStyle = '#f43f5e'; ctx.font = 'bold 56px sans-serif'; ctx.fillText('♥', 105, 140);
-    ctx.fillStyle = '#fda4af'; ctx.font = 'bold 20px sans-serif'; ctx.fillText(title, 25, 210);
+
+    // MotionSites Aesthetic Deep Glassmorphism Gradient
+    const grad = ctx.createLinearGradient(0, 0, 320, 420);
+    grad.addColorStop(0, '#1c1024');
+    grad.addColorStop(0.5, '#0d0b14');
+    grad.addColorStop(1, '#180d1e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 320, 420);
+
+    // Glowing Radial Nebula in center
+    const radial = ctx.createRadialGradient(160, 160, 10, 160, 160, 130);
+    radial.addColorStop(0, 'rgba(244, 63, 94, 0.28)');
+    radial.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = radial;
+    ctx.fillRect(0, 0, 320, 320);
+
+    // Golden Micro Dust Accents
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    for (let i = 0; i < 28; i++) {
+      const rx = (Math.sin(i * 12.3) * 0.5 + 0.5) * 300 + 10;
+      const ry = (Math.cos(i * 19.7) * 0.5 + 0.5) * 400 + 10;
+      ctx.fillRect(rx, ry, 1.5, 1.5);
+    }
+
+    // Central Radiant Heart
+    ctx.fillStyle = '#f43f5e';
+    ctx.font = 'bold 64px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(244, 63, 94, 0.65)';
+    ctx.shadowBlur = 20;
+    ctx.fillText('♥', 160, 175);
+    ctx.shadowBlur = 0;
+
+    // Date Pill Badge
+    if (date) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.beginPath();
+      ctx.roundRect(100, 220, 120, 26, 13);
+      ctx.fill();
+      ctx.fillStyle = '#fda4af';
+      ctx.font = '12px monospace';
+      ctx.fillText(date, 160, 238);
+    }
+
+    // Title Text with luxury tracking
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 17px -apple-system, sans-serif';
+    ctx.fillText(title, 160, 285);
+
+    // Subtitle note
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.font = 'italic 12px serif';
+    ctx.fillText('ETERNAL ECHO MEMORY', 160, 315);
+
+    // Outer Thin Bezel Border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(8, 8, 304, 404);
+
     return new THREE.CanvasTexture(cvs);
   }
 
@@ -402,7 +493,7 @@ class CelestialSphereGallery {
     const maxMeshes = isMobile ? 56 : 76;
     
     // Ensure the climax memory letter is always present as the concluding special card
-    let list = [...photos];
+    let list = photos.filter(p => p.id !== 'desktop_video_feat' && !p.url?.includes('video_thumb_desktop'));
     if (!list.some(p => p.isClimaxLetter)) {
       list.push({
         id: 'finale_climax_memory_letter',
@@ -411,7 +502,7 @@ class CelestialSphereGallery {
         date: 'Forever & Beyond',
         month: '2026-10',
         desc: '点击阅读致两载春秋的深情长信：从初春微风到岁月长流，愿往后每一个春夏秋冬，我们依旧手牵着手。',
-        url: 'assets/photos/video_thumb_desktop.jpg'
+        url: 'assets/photos/photo_001_202202.jpg'
       });
     }
 
@@ -447,33 +538,111 @@ class CelestialSphereGallery {
         side: THREE.FrontSide
       });
 
+      // Nouver AI Studio Vertical Mirror Reflection Materials
+      const reflFrontMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.FrontSide,
+        transparent: true,
+        opacity: 0.52,
+        alphaMap: this.reflectionAlphaMap
+      });
+      const reflBackMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.FrontSide,
+        transparent: true,
+        opacity: 0.52,
+        alphaMap: this.reflectionAlphaMap
+      });
+
+      const applyTexture = (tex) => {
+        frontMat.map = tex;
+        frontMat.needsUpdate = true;
+        backMat.map = tex;
+        backMat.needsUpdate = true;
+        reflFrontMat.map = tex;
+        reflFrontMat.needsUpdate = true;
+        reflBackMat.map = tex;
+        reflBackMat.needsUpdate = true;
+      };
+
       if (item.isClimaxLetter) {
         const letterTex = this.createLetterCoverTexture();
-        frontMat.map = letterTex;
-        frontMat.needsUpdate = true;
-        backMat.map = letterTex;
-        backMat.needsUpdate = true;
+        applyTexture(letterTex);
         this.climaxCardMesh = frameGroup;
+      } else if (item.isVideo && item.videoUrl) {
+        // Live 3D Video Memory: Auto-playing & looping directly on 3D Card & Mirror Reflection
+        const vid = document.createElement('video');
+        vid.src = item.videoUrl;
+        vid.crossOrigin = 'anonymous';
+        vid.loop = true;
+        vid.muted = true;
+        vid.autoplay = true;
+        vid.playsInline = true;
+        vid.setAttribute('playsinline', '');
+        vid.setAttribute('webkit-playsinline', '');
+        vid.play().catch(() => {
+          const unlock = () => {
+            vid.play().catch(() => {});
+            window.removeEventListener('pointerdown', unlock);
+          };
+          window.addEventListener('pointerdown', unlock, { once: true });
+        });
+
+        const vTex = new THREE.VideoTexture(vid);
+        vTex.minFilter = THREE.LinearFilter;
+        vTex.magFilter = THREE.LinearFilter;
+        vTex.format = THREE.RGBAFormat;
+        vTex.encoding = THREE.sRGBEncoding;
+        applyTexture(vTex);
       } else {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          const tex = new THREE.Texture(img);
-          tex.encoding = THREE.sRGBEncoding;
-          tex.needsUpdate = true;
-          frontMat.map = tex;
-          frontMat.needsUpdate = true;
-          backMat.map = tex;
-          backMat.needsUpdate = true;
-        };
-        img.onerror = () => {
-          const fallbackTex = this.createFallbackTexture(item.title);
-          frontMat.map = fallbackTex;
-          frontMat.needsUpdate = true;
-          backMat.map = fallbackTex;
-          backMat.needsUpdate = true;
-        };
-        img.src = item.url;
+        // High-Fidelity Real Photo Texture Loader (Three.js Native Loader)
+        if (!this.textureLoader) {
+          this.textureLoader = new THREE.TextureLoader();
+        }
+        
+        // 100% 真实合影防护：优先精确匹配，未命中则循环分配真实合影，彻底杜绝粉红心形占位图
+        let targetUrl = (window.PHOTO_THUMBS_DATA && window.PHOTO_THUMBS_DATA[item.url]) 
+          ? window.PHOTO_THUMBS_DATA[item.url] 
+          : null;
+
+        if (!targetUrl && window.PHOTO_THUMBS_DATA) {
+          const keys = Object.keys(window.PHOTO_THUMBS_DATA);
+          if (keys.length > 0) {
+            targetUrl = window.PHOTO_THUMBS_DATA[keys[index % keys.length]];
+          }
+        }
+        if (!targetUrl) {
+          targetUrl = item.url;
+        }
+
+        this.textureLoader.load(
+          targetUrl,
+          (tex) => {
+            tex.encoding = THREE.sRGBEncoding;
+            tex.minFilter = THREE.LinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.generateMipmaps = true;
+            tex.needsUpdate = true;
+            applyTexture(tex);
+          },
+          undefined,
+          (err) => {
+            console.warn('Photo texture load retry with guaranteed real couple photo:', item.url);
+            if (window.PHOTO_THUMBS_DATA) {
+              const keys = Object.keys(window.PHOTO_THUMBS_DATA);
+              if (keys.length > 0) {
+                const fallbackUrl = window.PHOTO_THUMBS_DATA[keys[index % keys.length]];
+                this.textureLoader.load(fallbackUrl, (t) => {
+                  t.encoding = THREE.sRGBEncoding;
+                  applyTexture(t);
+                });
+                return;
+              }
+            }
+            const canvasTex = this.createFallbackTexture(item.title, item.date);
+            applyTexture(canvasTex);
+          }
+        );
       }
 
       // Front Face (z = +0.6)
@@ -489,11 +658,11 @@ class CelestialSphereGallery {
 
       // Glowing Outer Bezel Frame on Front and Back
       const edges = new THREE.EdgesGeometry(cardGeo);
-      const frameColor = item.isClimaxLetter ? 0xfbbf24 : (item.isVideo ? 0x38bdf8 : 0xf43f5e);
+      const frameColor = item.isClimaxLetter ? 0xfbbf24 : (item.isVideo ? 0x38bdf8 : 0xffffff);
       const lineMat = new THREE.LineBasicMaterial({
         color: frameColor,
         transparent: true,
-        opacity: item.isClimaxLetter ? 1.0 : (item.isVideo ? 0.9 : 0.65),
+        opacity: item.isClimaxLetter ? 1.0 : (item.isVideo ? 0.9 : 0.7),
         linewidth: item.isClimaxLetter ? 3 : 2
       });
 
@@ -507,6 +676,34 @@ class CelestialSphereGallery {
 
       frameGroup.userData.borderLine = frontBorder;
       frameGroup.userData.backBorder = backBorder;
+
+      // Nouver Vertical Mirror Reflection Group (Inverted Y Symmetry)
+      const reflectionGroup = new THREE.Group();
+      reflectionGroup.position.y = -cardHeight - 1.5;
+      reflectionGroup.scale.y = -1;
+      reflectionGroup.visible = false;
+
+      const reflFrontMesh = new THREE.Mesh(cardGeo, reflFrontMat);
+      reflFrontMesh.position.z = 0.6;
+      reflectionGroup.add(reflFrontMesh);
+
+      const reflBackMesh = new THREE.Mesh(cardGeo, reflBackMat);
+      reflBackMesh.position.z = -0.6;
+      reflBackMesh.rotation.y = Math.PI;
+      reflectionGroup.add(reflBackMesh);
+
+      const reflBorderMat = new THREE.LineBasicMaterial({
+        color: frameColor,
+        transparent: true,
+        opacity: 0.22,
+        linewidth: 1
+      });
+      const reflBorder = new THREE.LineSegments(edges, reflBorderMat);
+      reflBorder.position.z = 0.8;
+      reflectionGroup.add(reflBorder);
+
+      frameGroup.add(reflectionGroup);
+      frameGroup.userData.reflectionGroup = reflectionGroup;
 
       // Video play indicator badge if video (on Front and Back)
       if (item.isVideo && !item.isClimaxLetter) {
@@ -553,11 +750,99 @@ class CelestialSphereGallery {
   }
 
   // -------------------------------------------------------------
-  // Entrance Staggered Assembly into 3D Heart ("一个一个相册蹦出来")
+  // Entrance Staggered Assembly into 3D Heart ("照片一个一个弹性弹出")
   // -------------------------------------------------------------
   playEntranceAnimation() {
-    this.currentShape = 'heart';
-    const targets = this.calculateTargets('heart');
+    this.applyLayout('heart', false);
+  }
+
+  // -------------------------------------------------------------
+  // Dynamic Shape Layout Switcher with Smooth Camera Fly & Stagger Pop
+  // -------------------------------------------------------------
+  applyLayout(shape, instant = false) {
+    this.currentShape = shape;
+    const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
+    let camTargetX = 0, camTargetY = this.defaultCamY, camTargetZ = this.defaultCamZ;
+    let lookTargetX = 0, lookTargetY = 25, lookTargetZ = 0;
+
+    if (shape === 'carousel') {
+      const radius = isMobile ? 480 : 660;
+      camTargetX = 0;
+      camTargetY = isMobile ? 8 : 12;
+      camTargetZ = radius + (isMobile ? 220 : 260);
+      lookTargetX = 0;
+      lookTargetY = -10;
+      lookTargetZ = 0;
+      if (this.groundMirror) {
+        const mirrorScale = (radius * 1.5) / 880;
+        this.groundMirror.scale.set(mirrorScale, mirrorScale, mirrorScale);
+        this.groundMirror.position.y = -110;
+        this.groundMirror.visible = true;
+      }
+    } else if (shape === 'wave') {
+      camTargetX = 0;
+      camTargetY = isMobile ? 100 : 130;
+      camTargetZ = isMobile ? 1180 : 1380;
+      lookTargetX = 0;
+      lookTargetY = 10;
+      lookTargetZ = 0;
+      if (this.groundMirror) this.groundMirror.visible = false;
+    } else if (shape === 'heart') {
+      camTargetX = 160;
+      camTargetY = 95;
+      camTargetZ = 1080;
+      lookTargetX = 0;
+      lookTargetY = 30;
+      lookTargetZ = 0;
+      if (this.groundMirror) this.groundMirror.visible = false;
+    } else if (shape === 'sphere') {
+      camTargetX = 0;
+      camTargetY = isMobile ? 30 : 40;
+      camTargetZ = isMobile ? 1150 : 1350;
+      lookTargetX = 0;
+      lookTargetY = 0;
+      lookTargetZ = 0;
+      if (this.groundMirror) this.groundMirror.visible = false;
+    }
+
+    // CRITICAL: Disable controls conflict during transition to guarantee single-click instant fly-in!
+    if (this.controls) {
+      this.controls.autoRotate = false;
+      this.controls.enabled = false;
+    }
+
+    if (instant || typeof gsap === 'undefined') {
+      this.camera.position.set(camTargetX, camTargetY, camTargetZ);
+      this.camera.lookAt(lookTargetX, lookTargetY, lookTargetZ);
+      if (this.controls) {
+        this.controls.target.set(lookTargetX, lookTargetY, lookTargetZ);
+        this.controls.update();
+        this.controls.enabled = true;
+        this.controls.autoRotate = true;
+      }
+    } else {
+      gsap.killTweensOf(this.camera.position);
+      gsap.to(this.camera.position, {
+        x: camTargetX,
+        y: camTargetY,
+        z: camTargetZ,
+        duration: 0.85,
+        ease: 'power3.out',
+        onUpdate: () => {
+          this.camera.lookAt(lookTargetX, lookTargetY, lookTargetZ);
+        },
+        onComplete: () => {
+          if (this.controls) {
+            this.controls.target.set(lookTargetX, lookTargetY, lookTargetZ);
+            this.controls.update();
+            this.controls.enabled = true;
+            this.controls.autoRotate = true;
+          }
+        }
+      });
+    }
+
+    const targets = this.calculateTargets(shape);
 
     this.photoMeshes.forEach((mesh, index) => {
       const target = targets[index % targets.length];
@@ -566,52 +851,70 @@ class CelestialSphereGallery {
       mesh.userData.targetPos = target.pos.clone();
       mesh.userData.targetRot = target.rot.clone();
 
-      if (typeof gsap !== 'undefined') {
-        const delay = (index / this.photoMeshes.length) * 2.2;
+      // Mirror reflection is enabled ONLY in carousel mode for cards in the carousel ring
+      if (mesh.userData.reflectionGroup) {
+        mesh.userData.reflectionGroup.visible = (shape === 'carousel' && target.inCarousel);
+      }
+
+      const targetScale = (shape === 'carousel' && target.targetScale) ? target.targetScale : (target.targetScale || 1.0);
+      mesh.userData.baseScale = targetScale;
+      mesh.userData.currentScale = targetScale;
+
+      if (instant || typeof gsap === 'undefined') {
+        mesh.userData.isAnimating = false;
+        mesh.position.copy(target.pos);
+        mesh.rotation.copy(target.rot);
+        mesh.scale.set(targetScale, targetScale, targetScale);
+      } else {
+        // MotionSites Stagger Spring Pop-out: 照片一个一个弹性弹出！
+        const staggerDelay = (index % 36) * 0.022; // 级联弹跳延时
+        mesh.userData.isAnimating = true;
+
+        gsap.killTweensOf(mesh.position);
+        gsap.killTweensOf(mesh.rotation);
+        gsap.killTweensOf(mesh.scale);
 
         gsap.to(mesh.scale, {
-          x: 1.0,
-          y: 1.0,
-          z: 1.0,
-          duration: 1.2,
-          ease: 'back.out(1.4)',
-          delay
+          x: targetScale,
+          y: targetScale,
+          z: targetScale,
+          duration: 0.75,
+          ease: 'back.out(2.4)', // 饱满弹力的弹簧曲线
+          delay: staggerDelay
         });
-
         gsap.to(mesh.position, {
           x: target.pos.x,
           y: target.pos.y,
           z: target.pos.z,
-          duration: 1.6,
+          duration: 0.85,
           ease: 'power3.out',
-          delay
+          delay: staggerDelay,
+          onComplete: () => {
+            mesh.userData.isAnimating = false;
+          }
         });
-
         gsap.to(mesh.rotation, {
           x: target.rot.x,
           y: target.rot.y,
           z: target.rot.z,
-          duration: 1.6,
+          duration: 0.85,
           ease: 'power3.out',
-          delay
+          delay: staggerDelay
         });
-      } else {
-        mesh.position.copy(target.pos);
-        mesh.rotation.copy(target.rot);
-        mesh.scale.set(1, 1, 1);
       }
     });
   }
 
   // -------------------------------------------------------------
-  // Mathematical Target Geometries for 5 Viral Styles
+  // Mathematical Target Geometries for 4 Romantic Styles
   // -------------------------------------------------------------
   calculateTargets(shape) {
     const targets = [];
     const count = this.photoMeshes.length;
+    const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
 
     if (shape === 'heart') {
-      // Style 1: True 3D Volumetric Heart (Three Layers with pronounced normal curvature & deep Z-depth)
+      // Style 1: True 3D Volumetric Heart (Three Layers with normal curvature & deep Z-depth)
       const outerCount = Math.floor(count * 0.48);
       const midCount = Math.floor(count * 0.34);
       const innerCount = count - outerCount - midCount;
@@ -621,34 +924,30 @@ class CelestialSphereGallery {
         if (i === count - 1) {
           const pos = new THREE.Vector3(0, -90, 240);
           const rot = new THREE.Euler(-0.08, 0, 0);
-          targets.push({ pos, rot, isClimax: true });
+          targets.push({ pos, rot, isClimax: true, targetScale: 1.05 });
           continue;
         }
 
         let t, scale, zOffset, rotX, rotY, rotZ;
         if (i < outerCount) {
-          // Layer 1: Front / Outer 3D Contour wrapping into deep space
           t = (i / outerCount) * Math.PI * 2;
-          scale = 34;
-          // Z ranges from -240 to +220
+          scale = isMobile ? 26 : 34;
           zOffset = Math.sin(t) * 160 + Math.cos(t * 2) * 90;
           rotY = (Math.sin(t) > 0 ? -0.48 : 0.48) * Math.min(1.0, Math.abs(Math.sin(t) * 1.4));
           rotX = -Math.cos(t) * 0.35;
           rotZ = Math.sin(t) * 0.12;
         } else if (i < outerCount + midCount) {
-          // Layer 2: Mid-Dome Shell
           const idx = i - outerCount;
           t = (idx / midCount) * Math.PI * 2;
-          scale = 23;
+          scale = isMobile ? 18 : 23;
           zOffset = 70 + Math.sin(t * 2) * 120;
           rotY = (Math.sin(t) > 0 ? -0.32 : 0.32) * Math.abs(Math.sin(t));
           rotX = -Math.cos(t) * 0.25;
           rotZ = Math.sin(t) * 0.08;
         } else {
-          // Layer 3: Inner Heart Core
           const idx = i - outerCount - midCount;
           t = (idx / innerCount) * Math.PI * 2;
-          scale = 13;
+          scale = isMobile ? 11 : 14;
           zOffset = 160 + Math.cos(t * 3) * 60;
           rotY = 0;
           rotX = 0;
@@ -662,11 +961,68 @@ class CelestialSphereGallery {
         const pos = new THREE.Vector3(x, y, z);
         const rot = new THREE.Euler(rotX, rotY, rotZ);
 
-        targets.push({ pos, rot });
+        targets.push({ pos, rot, targetScale: 1.0 });
+      }
+    } else if (shape === 'wave') {
+      // Style 2: MotionSites 3D Wave Stream - 开阔舒展正弦丝带，绝无重叠穿透
+      const spanX = isMobile ? 1100 : 1600;
+      const startX = -spanX / 2;
+      for (let i = 0; i < count; i++) {
+        const u = i / (Math.max(1, count - 1));
+        const x = startX + u * spanX;
+        const y = Math.sin(u * Math.PI * 3.2) * (isMobile ? 80 : 120);
+        const z = Math.cos(u * Math.PI * 2.4) * (isMobile ? 180 : 260);
+
+        const pos = new THREE.Vector3(x, y, z);
+        const rotY = Math.sin(u * Math.PI * 3.2) * 0.28;
+        const rotZ = Math.cos(u * Math.PI * 3.2) * 0.08;
+        const rot = new THREE.Euler(0, rotY, rotZ);
+
+        targets.push({ pos, rot, targetScale: 1.0 });
+      }
+    } else if (shape === 'carousel') {
+      // Style 3: 3D Fashion Gallery 时光回廊 - 奢华环形展厅与镜面倒影（完全零重叠、宽裕间距）
+      // 精选 22 张核心卡片沿大圆环排列，相邻卡片间距达 100px+，彻底消灭扑克牌式层叠遮挡！
+      const maxRingCards = isMobile ? 18 : 22;
+      const radius = isMobile ? 580 : 780;
+      const step = Math.max(1, Math.floor(count / maxRingCards));
+      let ringIndex = 0;
+
+      for (let i = 0; i < count; i++) {
+        const isOnRing = (i % step === 0) && (ringIndex < maxRingCards);
+        if (isOnRing) {
+          const theta = (ringIndex / maxRingCards) * Math.PI * 2;
+          const x = radius * Math.sin(theta);
+          const y = 0;
+          const z = radius * Math.cos(theta);
+
+          const pos = new THREE.Vector3(x, y, z);
+          // 卡片正面直对圆环外圈（正对相机观赏区）
+          const rot = new THREE.Euler(0, theta, 0);
+
+          targets.push({
+            pos,
+            rot,
+            inCarousel: true,
+            targetScale: isMobile ? 1.0 : 1.12
+          });
+          ringIndex++;
+        } else {
+          // 其余卡片优雅收拢并渐隐于圆心深处，保证主环通透纯净
+          const idleTheta = (i / count) * Math.PI * 2;
+          const pos = new THREE.Vector3(Math.sin(idleTheta) * 80, -300, Math.cos(idleTheta) * 80);
+          const rot = new THREE.Euler(0, idleTheta, 0);
+          targets.push({
+            pos,
+            rot,
+            inCarousel: false,
+            targetScale: 0.001
+          });
+        }
       }
     } else if (shape === 'sphere') {
-      // Style 2: 3D Rotating Memory Planet (Fibonacci Golden Ratio Distribution)
-      const radius = 560;
+      // Style 4: 3D Fibonacci Memory Planet
+      const radius = isMobile ? 460 : 580;
       for (let i = 0; i < count; i++) {
         const phi = Math.acos(-1 + (2 * i) / count);
         const theta = Math.sqrt(count * Math.PI) * phi;
@@ -681,206 +1037,11 @@ class CelestialSphereGallery {
         const rot = dummy.rotation.clone();
         rot.y += Math.PI;
 
-        targets.push({ pos, rot });
-      }
-    } else if (shape === 'helix') {
-      // Style 3: 3D Quantum DNA Double Helix Spiral
-      const radius = 460;
-      const heightStep = 36;
-      const startY = -((count * heightStep) / 4);
-
-      for (let i = 0; i < count; i++) {
-        const phi = i * 0.44;
-        const strand = i % 2 === 0 ? 0 : Math.PI;
-        const x = radius * Math.sin(phi + strand);
-        const y = startY + (i * heightStep * 0.5);
-        const z = radius * Math.cos(phi + strand);
-
-        const pos = new THREE.Vector3(x, y, z);
-        const dummy = new THREE.Object3D();
-        dummy.position.copy(pos);
-        dummy.lookAt(0, y, 0);
-        const rot = dummy.rotation.clone();
-        rot.y += Math.PI;
-
-        targets.push({ pos, rot });
-      }
-    } else if (shape === 'carousel') {
-      // Style 4: 3D Cinema Carousel / Coverflow (Circular Ring with Outward Face)
-      const radius = 660;
-      for (let i = 0; i < count; i++) {
-        const theta = (i / count) * Math.PI * 2;
-        const x = radius * Math.sin(theta);
-        const y = Math.sin(i * 0.35) * 20; // gentle undulating wave
-        const z = radius * Math.cos(theta);
-
-        const pos = new THREE.Vector3(x, y, z);
-        // Face outwards towards camera so photos are immediately visible
-        const rot = new THREE.Euler(0, theta, 0);
-
-        targets.push({ pos, rot });
-      }
-    } else if (shape === 'cube') {
-      // Style 5: 3D Double-Layer Exploding Cube (Inner Cube + Outer Cube)
-      // Inner cube: 6 faces at radius 140
-      // Outer cube: 6 faces at radius 280
-      // Remaining cards form an ambient orbit ring around the cube
-      const innerDist = 135;
-      const outerDist = 280;
-
-      const cubeNormals = [
-        { pos: new THREE.Vector3(0, 0, 1), rot: new THREE.Euler(0, 0, 0) },            // Front
-        { pos: new THREE.Vector3(0, 0, -1), rot: new THREE.Euler(0, Math.PI, 0) },      // Back
-        { pos: new THREE.Vector3(1, 0, 0), rot: new THREE.Euler(0, Math.PI / 2, 0) },   // Right
-        { pos: new THREE.Vector3(-1, 0, 0), rot: new THREE.Euler(0, -Math.PI / 2, 0) }, // Left
-        { pos: new THREE.Vector3(0, 1, 0), rot: new THREE.Euler(-Math.PI / 2, 0, 0) },  // Top
-        { pos: new THREE.Vector3(0, -1, 0), rot: new THREE.Euler(Math.PI / 2, 0, 0) }   // Bottom
-      ];
-
-      for (let i = 0; i < count; i++) {
-        if (i < 6) {
-          // Inner Cube (compact rotating core)
-          const norm = cubeNormals[i];
-          const pos = norm.pos.clone().multiplyScalar(innerDist);
-          targets.push({ pos, rot: norm.rot, isCubeFace: 'inner', normal: norm.pos });
-        } else if (i < 12) {
-          // Outer Cube (faces that explode outward)
-          const norm = cubeNormals[i - 6];
-          const pos = norm.pos.clone().multiplyScalar(outerDist);
-          targets.push({ pos, rot: norm.rot, isCubeFace: 'outer', normal: norm.pos });
-        } else {
-          // Orbit Ring of surrounding memories
-          const ringIdx = i - 12;
-          const ringTotal = count - 12;
-          const theta = (ringIdx / ringTotal) * Math.PI * 2;
-          const r = 580 + Math.sin(ringIdx * 0.5) * 60;
-          const x = r * Math.sin(theta);
-          const y = (Math.sin(theta * 3) * 120);
-          const z = r * Math.cos(theta);
-
-          const pos = new THREE.Vector3(x, y, z);
-          const rot = new THREE.Euler(0, theta + Math.PI, Math.sin(theta) * 0.2);
-          targets.push({ pos, rot, isCubeFace: 'orbit' });
-        }
+        targets.push({ pos, rot, targetScale: 1.0 });
       }
     }
 
     return targets;
-  }
-
-  applyLayout(shape, instant = false) {
-    this.currentShape = shape;
-
-    // Toggle ground mirror visibility (only in carousel)
-    if (this.groundMirror) {
-      this.groundMirror.visible = (shape === 'carousel');
-    }
-
-    // Adjust camera & OrbitControls polar angle constraints per shape
-    if (this.controls) {
-      if (shape === 'carousel') {
-        // Near-horizon tilt constraint for silky horizontal carousel spin (fixes "鼠标不好控制")
-        this.controls.minPolarAngle = Math.PI * 0.35; // ~63 deg
-        this.controls.maxPolarAngle = Math.PI * 0.58; // ~104 deg
-        this.controls.target.set(0, 0, 0);
-      } else if (shape === 'cube') {
-        this.controls.minPolarAngle = Math.PI * 0.20;
-        this.controls.maxPolarAngle = Math.PI * 0.75;
-        this.controls.target.set(0, 20, 0);
-      } else if (shape === 'heart') {
-        this.controls.minPolarAngle = Math.PI * 0.18;
-        this.controls.maxPolarAngle = Math.PI * 0.75;
-        this.controls.target.set(0, 30, 0);
-      } else {
-        this.controls.minPolarAngle = Math.PI * 0.18;
-        this.controls.maxPolarAngle = Math.PI * 0.75;
-        this.controls.target.set(0, 25, 0);
-      }
-    }
-
-    if (typeof gsap !== 'undefined') {
-      if (shape === 'cube') {
-        gsap.to(this.camera.position, { x: 0, y: 40, z: 820, duration: 0.9, ease: 'power2.out' });
-      } else if (shape === 'carousel') {
-        gsap.to(this.camera.position, { x: 0, y: 50, z: 980, duration: 0.9, ease: 'power2.out' });
-      } else if (shape === 'heart') {
-        gsap.to(this.camera.position, { x: 160, y: 95, z: 1080, duration: 0.9, ease: 'power2.out' });
-      } else {
-        gsap.to(this.camera.position, { x: 0, y: this.defaultCamY, z: this.defaultCamZ, duration: 0.9, ease: 'power2.out' });
-      }
-    }
-
-    const targets = this.calculateTargets(shape);
-
-    this.photoMeshes.forEach((mesh, index) => {
-      const target = targets[index % targets.length];
-      if (!target) return;
-
-      mesh.userData.targetPos = target.pos.clone();
-      mesh.userData.targetRot = target.rot.clone();
-      mesh.userData.isCubeFace = target.isCubeFace;
-      mesh.userData.cubeNormal = target.normal;
-
-      if (instant || typeof gsap === 'undefined') {
-        mesh.position.copy(target.pos);
-        mesh.rotation.copy(target.rot);
-      } else {
-        // High-responsiveness: starts within 12ms, finishes in 0.85s
-        const staggerDelay = (index % 8) * 0.012;
-        gsap.to(mesh.position, {
-          x: target.pos.x,
-          y: target.pos.y,
-          z: target.pos.z,
-          duration: 0.85,
-          ease: 'power3.out',
-          delay: staggerDelay
-        });
-        gsap.to(mesh.rotation, {
-          x: target.rot.x,
-          y: target.rot.y,
-          z: target.rot.z,
-          duration: 0.85,
-          ease: 'power3.out',
-          delay: staggerDelay
-        });
-      }
-    });
-  }
-
-  // -------------------------------------------------------------
-  // Exploding Cube Physics (Hover / Touch triggers outer expansion)
-  // -------------------------------------------------------------
-  triggerCubeExplosion(explode) {
-    if (this.currentShape !== 'cube' || this.isCubeExploded === explode) return;
-    this.isCubeExploded = explode;
-
-    const explodeDistance = explode ? 180 : 0;
-
-    this.photoMeshes.forEach(mesh => {
-      if (mesh.userData.isCubeFace === 'outer' && mesh.userData.cubeNormal && mesh.userData.targetPos) {
-        const offset = mesh.userData.cubeNormal.clone().multiplyScalar(explodeDistance);
-        const finalPos = mesh.userData.targetPos.clone().add(offset);
-
-        if (typeof gsap !== 'undefined') {
-          gsap.to(mesh.position, {
-            x: finalPos.x,
-            y: finalPos.y,
-            z: finalPos.z,
-            duration: 0.8,
-            ease: explode ? 'back.out(1.8)' : 'power3.inOut'
-          });
-        }
-      }
-    });
-
-    if (explode && typeof confetti === 'function') {
-      confetti({
-        particleCount: 25,
-        spread: 60,
-        origin: { y: 0.5 },
-        colors: ['#f43f5e', '#fda4af', '#f472b6']
-      });
-    }
   }
 
   // -------------------------------------------------------------
@@ -907,12 +1068,6 @@ class CelestialSphereGallery {
       this.mouseParallax.targetY = this.mouse.y * 0.10;
 
       this.checkRaycastHover();
-
-      // Trigger cube explosion if hovering over cube center
-      if (this.currentShape === 'cube') {
-        const distFromCenter = Math.hypot(this.mouse.x, this.mouse.y);
-        this.triggerCubeExplosion(distFromCenter < 0.45);
-      }
     });
 
     dom.addEventListener('pointerdown', () => {
@@ -928,8 +1083,13 @@ class CelestialSphereGallery {
     dom.addEventListener('pointerup', (e) => {
       clearTimeout(this.idleResumeTimer);
       this.idleResumeTimer = setTimeout(() => {
-        if (this.controls) this.controls.autoRotate = true;
-      }, 6000);
+        if (this.controls) {
+          this.controls.autoRotate = true;
+          if (this.currentShape === 'carousel') {
+            this.controls.autoRotateSpeed = 0.52;
+          }
+        }
+      }, 1200);
 
       if (this.isDragging) return;
 
@@ -977,8 +1137,11 @@ class CelestialSphereGallery {
 
     if (foundCard !== this.hoveredMesh) {
       if (this.hoveredMesh) {
+        const defaultS = (this.currentShape === 'carousel' && this.hoveredMesh.userData.reflectionGroup && this.hoveredMesh.userData.reflectionGroup.visible)
+          ? ((this.container?.clientWidth || window.innerWidth) < 768 ? 1.15 : 1.30)
+          : (this.currentShape === 'carousel' ? 0.001 : 1.0);
         if (typeof gsap !== 'undefined') {
-          gsap.to(this.hoveredMesh.scale, { x: 1.0, y: 1.0, z: 1.0, duration: 0.4 });
+          gsap.to(this.hoveredMesh.scale, { x: defaultS, y: defaultS, z: defaultS, duration: 0.4 });
         }
         const baseOpacity = this.hoveredMesh.userData.isClimaxLetter ? 1.0 : (this.hoveredMesh.userData.isVideo ? 0.9 : 0.65);
         if (this.hoveredMesh.userData.borderLine) {
@@ -993,8 +1156,11 @@ class CelestialSphereGallery {
 
       if (this.hoveredMesh) {
         this.renderer.domElement.style.cursor = 'pointer';
+        const hoverS = (this.currentShape === 'carousel')
+          ? ((this.container?.clientWidth || window.innerWidth) < 768 ? 1.25 : 1.45)
+          : 1.18;
         if (typeof gsap !== 'undefined') {
-          gsap.to(this.hoveredMesh.scale, { x: 1.18, y: 1.18, z: 1.18, duration: 0.4, ease: 'back.out(1.5)' });
+          gsap.to(this.hoveredMesh.scale, { x: hoverS, y: hoverS, z: hoverS, duration: 0.4, ease: 'back.out(1.5)' });
         }
         if (this.hoveredMesh.userData.borderLine) {
           this.hoveredMesh.userData.borderLine.material.opacity = 1.0;
@@ -1043,6 +1209,71 @@ class CelestialSphereGallery {
   }
 
   // Smoothly Fly Camera to Climax Memory Letter Card
+  // Smoothly Reset Camera View & Focus back to Default Layout Perspective (Fixes "关掉后就变形了")
+  resetCameraFocus() {
+    if (!this.camera || typeof gsap === 'undefined') return;
+
+    if (this.idleResumeTimer) clearTimeout(this.idleResumeTimer);
+
+    let targetCamPos = { x: 0, y: this.defaultCamY, z: this.defaultCamZ };
+    let lookTarget = { x: 0, y: 25, z: 0 };
+
+    if (this.currentShape === 'carousel') {
+      const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
+      const radius = isMobile ? 390 : 490;
+      targetCamPos = { x: 0, y: isMobile ? 12 : 16, z: radius + (isMobile ? 330 : 280) };
+      lookTarget = { x: 0, y: -15, z: 0 };
+    } else if (this.currentShape === 'wave') {
+      const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
+      targetCamPos = { x: 0, y: isMobile ? 70 : 90, z: isMobile ? 980 : 1180 };
+      lookTarget = { x: 0, y: 10, z: 0 };
+    } else if (this.currentShape === 'heart') {
+      targetCamPos = { x: 160, y: 95, z: 1080 };
+      lookTarget = { x: 0, y: 30, z: 0 };
+    } else {
+      targetCamPos = { x: 0, y: this.defaultCamY, z: this.defaultCamZ };
+      lookTarget = { x: 0, y: 25, z: 0 };
+    }
+
+    gsap.killTweensOf(this.camera.position);
+    gsap.to(this.camera.position, {
+      x: targetCamPos.x,
+      y: targetCamPos.y,
+      z: targetCamPos.z,
+      duration: 0.9,
+      ease: 'power3.out',
+      onUpdate: () => {
+        if (!this.controls) this.camera.lookAt(lookTarget.x, lookTarget.y, lookTarget.z);
+      }
+    });
+
+    if (this.controls) {
+      gsap.killTweensOf(this.controls.target);
+      gsap.to(this.controls.target, {
+        x: lookTarget.x,
+        y: lookTarget.y,
+        z: lookTarget.z,
+        duration: 0.9,
+        ease: 'power3.out',
+        onComplete: () => {
+          this.controls.autoRotate = true;
+          if (this.currentShape === 'carousel') {
+            this.controls.autoRotateSpeed = 0.52;
+          }
+        }
+      });
+    }
+
+    // Reset card hover scales
+    this.photoMeshes.forEach(mesh => {
+      const s = (this.currentShape === 'carousel' && mesh.userData.reflectionGroup && mesh.userData.reflectionGroup.visible)
+        ? ((this.container?.clientWidth || window.innerWidth) < 768 ? 1.15 : 1.30)
+        : (this.currentShape === 'carousel' ? 0.001 : 1.0);
+      gsap.to(mesh.scale, { x: s, y: s, z: s, duration: 0.4, ease: 'power2.out' });
+    });
+    this.hoveredMesh = null;
+  }
+
   focusClimaxCard() {
     if (this.climaxCardMesh) {
       this.focusPhoto(this.climaxCardMesh);
@@ -1088,13 +1319,30 @@ class CelestialSphereGallery {
       });
     }
 
-    // 3. Autonomous Procedural Floating Motion
+    // 3. Autonomous Procedural Kinetic Motion ("照片一个一个跳动" - Travelling Wave Dynamics)
     this.photoMeshes.forEach(mesh => {
-      if (mesh !== this.hoveredMesh && mesh.userData.targetPos) {
-        const seed = mesh.userData.floatSeed || 0;
-        mesh.position.y = mesh.userData.targetPos.y + Math.sin(elapsed * 1.8 + seed) * 4.5;
-        mesh.position.x = mesh.userData.targetPos.x + Math.cos(elapsed * 1.2 + seed) * 3.0;
-        mesh.rotation.z = mesh.userData.targetRot.z + Math.sin(elapsed * 1.5 + seed) * 0.02;
+      if (mesh !== this.hoveredMesh && mesh.userData.targetPos && !mesh.userData.isAnimating) {
+        const idx = mesh.userData.index || 0;
+        // 行波相位：以固定波速沿着卡片序号传递，使照片像多米诺骨牌与波浪琴键般一个接一个跳动
+        const waveSpeed = 2.9;
+        const waveFreq = 0.26;
+        const phase = elapsed * waveSpeed - idx * waveFreq;
+
+        // 根据模式调整跳跃高度与弹力幅度
+        const amp = (this.currentShape === 'wave') ? 10.0 : (this.currentShape === 'heart' ? 12.0 : 14.0);
+        const bounceY = Math.sin(phase) * amp;
+        const bounceZ = Math.cos(phase) * (amp * 0.45);
+        const bounceRotZ = Math.sin(phase) * 0.055;
+        const bounceScale = 1.0 + Math.sin(phase) * 0.04; // 呼吸弹跳
+
+        mesh.position.y = mesh.userData.targetPos.y + bounceY;
+        mesh.position.z = mesh.userData.targetPos.z + bounceZ;
+        mesh.rotation.z = mesh.userData.targetRot.z + bounceRotZ;
+
+        // 维持卡片基准缩放的同时叠加弹跳律动
+        const baseScale = mesh.userData.currentScale || mesh.userData.baseScale || 1.0;
+        const s = baseScale * bounceScale;
+        mesh.scale.set(s, s, s);
       }
     });
 

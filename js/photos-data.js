@@ -4,17 +4,7 @@
  */
 
 window.REAL_COUPLE_PHOTOS = [
-  {
-    "id": "desktop_video_feat",
-    "month": "2022-02",
-    "date": "2022-02-14",
-    "url": "assets/photos/video_thumb_desktop.jpg",
-    "videoUrl": "assets/videos/a522e4a749cc31027b9d16480116d157.mp4",
-    "isVideo": true,
-    "title": "专属纪念录像 · 心动瞬间",
-    "desc": "桌面珍贵动态录像，定格鲜活会动的爱与微光。背景音乐放完后将自动播放这段原声。"
-  },
-  {
+    {
     "id": 1,
     "month": "2022-02",
     "date": "2022-02-05",
@@ -2245,7 +2235,7 @@ window.REAL_COUPLE_PHOTOS = [
   {
     "id": "climax_memory_letter",
     "isClimaxLetter": true,
-    "url": "assets/photos/video_thumb_desktop.jpg",
+    "url": "assets/photos/photo_001_202202.jpg",
     "title": "时光长卷 · 致我们的两载春秋",
     "month": "2026-10",
     "date": "Forever & Beyond",
