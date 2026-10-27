@@ -57,6 +57,8 @@ class CelestialSphereGallery {
     this.audioConnected = false;
     this.audioAnalyser = null;
     this.audioData = null;
+    this.audioElement = null;
+    this.isMusicPlaying = false;
 
     // Camera & Motion
     this.defaultCamZ = 1100;
@@ -298,47 +300,13 @@ class CelestialSphereGallery {
   // Direct speaker output is ALWAYS guaranteed, never hijacked or muted.
   // -------------------------------------------------------------
   connectAudio(audioElement) {
-    if (this.audioConnected || !audioElement) return;
-    try {
-      // If running on file: protocol or restricted environment, avoid createMediaElementSource hijacking
-      const isFileProtocol = (typeof window !== 'undefined' && window.location.protocol === 'file:');
-      if (isFileProtocol) {
-        // Safe synthetic visual pulse: Keeps native audio pristine & unmuted through speakers!
-        this.audioConnected = false;
-        return;
-      }
+    if (!audioElement) return;
+    this.audioElement = audioElement;
+    this.audioConnected = true;
+  }
 
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-
-      const audioCtx = new AudioCtx();
-      const source = audioCtx.createMediaElementSource(audioElement);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.8;
-
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
-
-      this.audioCtx = audioCtx;
-      this.audioAnalyser = analyser;
-      this.audioData = new Uint8Array(analyser.frequencyBinCount);
-      this.audioConnected = true;
-
-      const ensureAudioRunning = () => {
-        if (this.audioCtx && this.audioCtx.state === 'suspended') {
-          this.audioCtx.resume().catch(e => console.log('AudioContext auto-resume note:', e));
-        }
-      };
-      ensureAudioRunning();
-      audioElement.addEventListener('play', ensureAudioRunning);
-      audioElement.addEventListener('playing', ensureAudioRunning);
-      window.addEventListener('pointerdown', ensureAudioRunning, { once: false });
-      window.addEventListener('touchstart', ensureAudioRunning, { once: false });
-    } catch (e) {
-      console.warn('Audio analyzer connected via synthetic pulse fallback (speaker pristine):', e);
-      this.audioConnected = false;
-    }
+  setMusicPlaying(isPlaying) {
+    this.isMusicPlaying = !!isPlaying;
   }
 
   // -------------------------------------------------------------
@@ -2624,13 +2592,13 @@ class CelestialSphereGallery {
 
     // 1. Audio Resonance
     let bass = 0;
-    if (this.audioAnalyser && this.audioData) {
-      this.audioAnalyser.getByteFrequencyData(this.audioData);
-      let sumBass = 0;
-      for (let i = 1; i <= 6; i++) sumBass += this.audioData[i];
-      bass = (sumBass / 6) / 255;
+    const isPlaying = this.isMusicPlaying || (this.audioElement && !this.audioElement.paused);
+    if (isPlaying) {
+      const beat1 = Math.max(0, Math.sin(elapsed * 3.2));
+      const beat2 = Math.max(0, Math.sin(elapsed * 6.4 + 0.4)) * 0.45;
+      bass = (beat1 + beat2) * 0.45;
     } else {
-      bass = Math.max(0, Math.sin(elapsed * 2.5)) * 0.35;
+      bass = Math.max(0, Math.sin(elapsed * 1.5)) * 0.12;
     }
 
     // 2. Central Holographic Cyber Heart Dynamic Animation

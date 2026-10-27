@@ -306,155 +306,94 @@ class EternalApp {
 
     this.flipbook = null;
 
-    // Sequential Audio Playlist System (Auto-Chained: 《第57次取消发送》 -> 《理想三旬》 -> 视频原声)
-
+    // Sequential Audio Playlist System (Auto-Chained: 《第57次取消发送》 -> 《理想三旬》 -> 《晴天》 -> 视频原声)
     this.playlist = [
-
       {
-
         id: 'di57ciquxiaofasong',
-
         title: '第57次取消发送',
-
         artist: '菲菲公主',
-
         type: 'song',
-
         src: 'assets/audio/di57ciquxiaofasong.mp3',
-
-        fallbackSrc: 'https://music.163.com/song/media/outer/url?id=3394494163.mp3',
-
         badge: '🔥 热门主打恋曲'
-
       },
-
       {
-
         id: 'lixiangsanxun',
-
         title: '理想三旬',
-
         artist: '陈鸿宇',
-
         type: 'song',
-
         src: 'assets/audio/lixiangsanxun.mp3',
-
-        fallbackSrc: 'https://music.163.com/song/media/outer/url?id=31445772.mp3',
-
         badge: '🎵 官方浪漫主题曲'
-
       },
-
       {
-
         id: 'qingtian',
-
         title: '晴天',
-
         artist: '周杰伦',
-
         type: 'song',
-
         src: 'assets/audio/qingtian.mp3',
-
-        fallbackSrc: 'https://raw.githubusercontent.com/slshenhong/music_file_zhoujielun/main/qingtian.mp3',
-
         badge: '🎵 经典心动恋曲'
-
       },
-
       {
-
         id: 'video_audio_1',
-
         title: '平安夜录像原声独白',
-
         artist: '我们的记忆原声音频',
-
         type: 'video_audio',
-
         src: 'assets/audio/video_memory_audio.m4a',
-
         videoRef: 'assets/videos/VID_20221224_041448.mp4',
-
         badge: '🎬 视频原声音频'
-
       },
-
       {
-
         id: 'video_audio_2',
-
         title: '跨年夜钟声心跳原声',
-
         artist: '我们的记忆原声音频',
-
         type: 'video_audio',
-
         src: 'assets/audio/video_memory_audio_2.m4a',
-
         videoRef: 'assets/videos/VID_20221231_210040.mp4',
-
         badge: '🎬 跨年原声音频'
-
       }
-
     ];
 
     this.currentTrackIndex = 0;
-
     this.isPlayingMusic = false;
-
     this.synth = new RomanticAudioSynth();
 
     // Prioritize high-performance native audio element hosted in DOM
-
     this.audioElement = document.getElementById('mainBgmAudio') || new Audio();
-
     this.audioElement.preload = 'auto';
-
     this.audioElement.volume = 1.0;
-
     this.audioElement.muted = false;
+    if (!this.audioElement.src || this.audioElement.src === '' || this.audioElement.src === window.location.href) {
+      this.audioElement.src = this.playlist[0].src;
+    }
 
-    this.audioElement.src = this.playlist[0].src;
-
-    // Automatic Sequential Transition: When song finishes, immediately advance to video audio!
-
-    this.audioElement.onended = () => {
-
-      console.log('Track finished, auto-playing next track in sequence!');
-
-      this.playNextTrack();
-
-    };
-
-    this.audioElement.onerror = () => {
-
-      const track = this.playlist[this.currentTrackIndex];
-
-      if (track && track.fallbackSrc) {
-
-        console.warn('Local MP3 failed, trying online stream for', track.title);
-
-        this.audioElement.src = track.fallbackSrc;
-
-        this.audioElement.play().catch(e => {
-
-          console.warn('Falling back to pure Web Audio romantic synthesizer:', e);
-
-          if (this.isPlayingMusic && this.synth) {
-
-            this.synth.start();
-
-          }
-
-        });
-
+    // Direct event-driven state synchronization
+    this.audioElement.addEventListener('play', () => {
+      this.isPlayingMusic = true;
+      this.syncMusicUI(true);
+      if (this.sphereGallery) {
+        this.sphereGallery.setMusicPlaying(true);
       }
+    });
 
-    };
+    this.audioElement.addEventListener('pause', () => {
+      this.isPlayingMusic = false;
+      this.syncMusicUI(false);
+      if (this.sphereGallery) {
+        this.sphereGallery.setMusicPlaying(false);
+      }
+    });
+
+    // Automatic Sequential Transition: When song finishes, advance to next track in playlist!
+    this.audioElement.addEventListener('ended', () => {
+      console.log('Track finished, auto-playing next track in sequence!');
+      this.playNextTrack();
+    });
+
+    this.audioElement.addEventListener('error', (e) => {
+      console.warn('Audio playback error on current track, advancing to next track:', e);
+      setTimeout(() => {
+        this.playNextTrack();
+      }, 500);
+    });
 
     this.init();
 
@@ -1251,191 +1190,53 @@ class EternalApp {
   }
 
   toggleMusic() {
+    const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
+    const trackUrl = track.src;
 
-    // 1. Explicitly resume AudioContext to guarantee zero silent freeze
-
-    if (this.sphereGallery && this.sphereGallery.audioCtx && this.sphereGallery.audioCtx.state === 'suspended') {
-
-      this.sphereGallery.audioCtx.resume().catch(e => console.log(e));
-
+    if (!this.audioElement.src || !this.audioElement.src.includes(trackUrl)) {
+      this.audioElement.src = trackUrl;
     }
 
-    if (this.isPlayingMusic) {
-
-      this.audioElement.pause();
-
-      if (this.synth) this.synth.stop();
-
-      this.isPlayingMusic = false;
-
-      this.syncMusicUI(false);
-
-      this.showToast('⏸ 已暂停播放');
-
-    } else {
-
+    if (this.audioElement.paused) {
       this.audioElement.volume = 1.0;
-
       this.audioElement.muted = false;
-
-      const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
-
-      if (this.sphereGallery) {
-
-        this.sphereGallery.connectAudio(this.audioElement);
-
-      }
-
       const playPromise = this.audioElement.play();
-
       if (playPromise !== undefined) {
-
         playPromise.then(() => {
-
-          this.isPlayingMusic = true;
-
-          this.syncMusicUI(true);
-
           this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
-
         }).catch(err => {
-
-          console.warn('Audio MP3 direct play restricted, engaging fallback:', err);
-
-          if (track.fallbackSrc) {
-
-            this.audioElement.src = track.fallbackSrc;
-
-            this.audioElement.play().then(() => {
-
-              this.isPlayingMusic = true;
-
-              this.syncMusicUI(true);
-
-              this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
-
-            }).catch(e => {
-
-              if (this.synth) {
-
-                this.synth.start();
-
-                this.isPlayingMusic = true;
-
-                this.syncMusicUI(true);
-
-                this.showToast('🎶 正在播放：浪漫钢琴心跳旋律');
-
-              }
-
-            });
-
-          } else if (this.synth) {
-
-            this.synth.start();
-
-            this.isPlayingMusic = true;
-
-            this.syncMusicUI(true);
-
-            this.showToast('🎶 正在播放：浪漫钢琴心跳旋律');
-
-          }
-
+          console.warn('Play restricted or deferred:', err);
         });
-
       }
-
+    } else {
+      this.audioElement.pause();
+      this.showToast('⏸ 已暂停播放');
     }
-
   }
 
   playTrack(index) {
-
     if (index < 0 || index >= this.playlist.length) return;
-
     this.currentTrackIndex = index;
-
     const track = this.playlist[this.currentTrackIndex];
-
     this.audioElement.src = track.src;
-
     this.audioElement.volume = 1.0;
-
     this.audioElement.muted = false;
-
-    if (this.sphereGallery) {
-
-      if (this.sphereGallery.audioCtx && this.sphereGallery.audioCtx.state === 'suspended') {
-
-        this.sphereGallery.audioCtx.resume().catch(e => console.log(e));
-
-      }
-
-      this.sphereGallery.connectAudio(this.audioElement);
-
-    }
-
     const playPromise = this.audioElement.play();
-
     if (playPromise !== undefined) {
-
       playPromise.then(() => {
-
-        this.isPlayingMusic = true;
-
-        this.syncMusicUI(true);
-
         this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
-
       }).catch(err => {
-
         console.warn('Track play restricted:', err);
-
-        if (track.fallbackSrc) {
-
-          this.audioElement.src = track.fallbackSrc;
-
-          this.audioElement.play().then(() => {
-
-            this.isPlayingMusic = true;
-
-            this.syncMusicUI(true);
-
-            this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
-
-          }).catch(e => {
-
-            if (this.synth) {
-
-              this.synth.start();
-
-              this.isPlayingMusic = true;
-
-              this.syncMusicUI(true);
-
-            }
-
-          });
-
-        }
-
       });
-
     }
-
   }
 
   playNextTrack() {
-
     this.playTrack((this.currentTrackIndex + 1) % this.playlist.length);
-
   }
 
   playPrevTrack() {
-
     this.playTrack((this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length);
-
   }
 
   syncMusicUI(isPlaying) {
@@ -2291,121 +2092,92 @@ class EternalApp {
   }
 
   attemptDirectAutoplay() {
-
     // 1. Attempt unmuted autoplay directly
-
     const p = this.audioElement.play();
-
     if (p !== undefined) {
-
       p.then(() => {
-
-        this.isPlayingMusic = true;
-
-        this.syncMusicUI(true);
-
-        // Automatically dismiss entrance overlay to instantly show 3D Heart Photo Wall
-
-        const overlay = document.getElementById('entranceOverlay');
-
-        if (overlay) {
-
-          overlay.classList.add('opacity-0', 'pointer-events-none');
-
-          setTimeout(() => overlay.remove(), 500);
-
-        }
-
+        this.dismissEntranceOverlay();
       }).catch(() => {
-
-        // Browser policy blocked unprompted audio; listen to ANY touch/click
-
-        const unlockAudio = () => {
-
-          if (!this.isPlayingMusic) {
-
-            this.toggleMusic();
-
-          }
-
-          window.removeEventListener('pointerdown', unlockAudio);
-
-          window.removeEventListener('touchstart', unlockAudio);
-
-        };
-
-        window.addEventListener('pointerdown', unlockAudio, { once: true });
-
-        window.addEventListener('touchstart', unlockAudio, { once: true });
-
+        // Autoplay policy prevented immediate unprompted audio;
+        // Keep entrance notice pill visible and listen for the first user gesture.
+        this.setupFirstInteractionUnlock();
       });
-
     }
 
     // 2. WeChat automatic play hook
-
     document.addEventListener("WeixinJSBridgeReady", () => {
+      if (this.audioElement.paused) {
+        this.audioElement.play().then(() => {
+          this.dismissEntranceOverlay();
+        }).catch(e => console.log('WeChat auto-play note:', e));
+      }
+    }, false);
+  }
 
-      if (!this.isPlayingMusic) {
+  dismissEntranceOverlay(triggerCelebration = false) {
+    const overlay = document.getElementById('entranceOverlay');
+    if (!overlay) return;
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+    setTimeout(() => {
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }, 400);
+    if (triggerCelebration) {
+      this.celebrateHeart();
+    }
+  }
 
-        this.toggleMusic();
+  setupFirstInteractionUnlock() {
+    let unlocked = false;
+    const unlockHandler = (e) => {
+      if (unlocked) return;
+      unlocked = true;
 
+      this.dismissEntranceOverlay();
+
+      const quickBtn = document.getElementById('quickMusicBtn');
+      const isQuickBtn = quickBtn && (quickBtn === e.target || quickBtn.contains(e.target));
+
+      if (isQuickBtn) {
+        cleanup();
+        return;
       }
 
-    }, false);
+      if (this.audioElement.paused) {
+        this.audioElement.volume = 1.0;
+        this.audioElement.muted = false;
+        this.audioElement.play().then(() => {
+          const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
+          this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
+        }).catch(err => console.log('Unlock audio attempt:', err));
+      }
 
+      cleanup();
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('click', unlockHandler, true);
+      window.removeEventListener('touchend', unlockHandler, true);
+    };
+
+    window.addEventListener('click', unlockHandler, true);
+    window.addEventListener('touchend', unlockHandler, true);
   }
 
   setupEntranceOverlay() {
-
     const overlay = document.getElementById('entranceOverlay');
-
     if (!overlay) return;
-
-    const dismissOverlay = (triggerCelebration = false) => {
-
-      if (overlay.classList.contains('pointer-events-none')) return;
-
-      overlay.classList.add('opacity-0', 'pointer-events-none');
-
-      setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 350);
-
-      if (!this.isPlayingMusic) {
-
-        this.toggleMusic();
-
-      }
-
-      if (triggerCelebration) {
-
-        this.celebrateHeart();
-
-      }
-
-    };
-
     overlay.addEventListener('click', (e) => {
-
       e.stopPropagation();
-
-      dismissOverlay(true);
-
+      this.dismissEntranceOverlay(true);
+      if (this.audioElement.paused) {
+        this.audioElement.volume = 1.0;
+        this.audioElement.muted = false;
+        this.audioElement.play().then(() => {
+          const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
+          this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
+        }).catch(err => console.log('Overlay click play note:', err));
+      }
     });
-
-    const onUserTouch = () => {
-
-      dismissOverlay(false);
-
-      window.removeEventListener('pointerdown', onUserTouch);
-
-      window.removeEventListener('touchstart', onUserTouch);
-
-    };
-
-    window.addEventListener('pointerdown', onUserTouch, { passive: true, once: true });
-
-    window.addEventListener('touchstart', onUserTouch, { passive: true, once: true });
-
   }
 
   bindDOMEvents() {
