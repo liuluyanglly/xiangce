@@ -27,3 +27,11 @@ node_modules/
 
 
 .workbuddy/
+
+# Distribution & zip builds
+dist/
+*.zip
+
+# WorkBuddy genie temporary files
+*.genie
+.wbapp*

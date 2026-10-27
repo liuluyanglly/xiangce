@@ -7,7 +7,7 @@
   
   <!-- Offline-Ready Static Stylesheet (Zero Network Blocking, 0ms Instant Load) -->
   <link rel="stylesheet" href="css/tailwind.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20211211_v1">
+  <link rel="stylesheet" href="css/style.css?v=20261027_v2">
   
   <!-- Offline Core 3D & Animation Libraries (Locally Hosted in js/vendor) -->
   <script src="js/vendor/three.min.js"></script>
@@ -81,7 +81,7 @@
   </nav>
 
   <!-- Left Top Floating Couple Badge -->
-  <aside class="fixed top-5 left-5 z-20 pointer-events-auto select-none">
+  <aside class="couple-badge fixed top-5 left-5 z-20 pointer-events-auto select-none">
     <div class="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-zinc-950/60 border border-white/10 backdrop-blur-xl shadow-lg">
       <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">EE</div>
       <div>
@@ -100,6 +100,20 @@
        ========================================================================= -->
   <main id="viewportGalaxy" class="mode-viewport fixed inset-0 w-full h-full z-10">
     <div id="sphereContainer" class="w-full h-full"></div>
+
+    <div class="gallery-intro" aria-label="相册主题">
+      <span class="gallery-eyebrow">ETERNAL ECHO · OUR LITTLE UNIVERSE</span>
+      <h2 id="heroCoupleTitle">尹珍珠 &amp; 刘禄洋 ♥</h2>
+      <p id="heroQuote">从2021年冬天的初遇，到岁月长河里的每一刻相伴，唯爱永恒。</p>
+      <span class="gallery-title-rule" aria-hidden="true"></span>
+    </div>
+
+    <div class="gallery-view-status" aria-hidden="true">
+      <span class="gallery-status-dot"></span>
+      <span>心动视角 · 轻柔旋转</span>
+      <span class="gallery-status-divider"></span>
+      <span>拖动欣赏 · 点击重温</span>
+    </div>
 
     <!-- Carousel Mode Floating Batch Dock (奢华环形展厅批次控制器) -->
     <div id="carouselControlDock" class="carousel-control-dock hidden opacity-0 pointer-events-none">
@@ -270,54 +284,46 @@
     </div>
   </div>
 
-  <!-- Climax Memory Summary Modal (致两载春秋的深情长信) -->
-  <div id="climaxLetterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200 ease-out">
-    <div id="climaxLetterCard" class="relative w-full max-w-2xl double-bezel transform scale-95 transition-transform duration-200 ease-out">
-      <div class="double-bezel-inner p-7 sm:p-10 relative overflow-hidden bg-gradient-to-b from-zinc-900/95 via-zinc-950 to-zinc-900/95 border border-amber-500/30">
-                <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+  <!-- Climax Memory Letter：内容取自相册里真实出现的照片片段 -->
+  <div id="climaxLetterModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-200 ease-out">
+    <div id="climaxLetterCard" class="letter-card relative w-full max-w-3xl double-bezel transform scale-95 transition-transform duration-200 ease-out flex flex-col max-h-[92vh]">
+      <div class="letter-paper double-bezel-inner p-6 sm:p-10 relative overflow-hidden border border-amber-500/30 flex flex-col min-h-0 flex-1">
+        <div class="letter-watermark" aria-hidden="true">♥</div>
+        <div class="relative flex items-start justify-between border-b border-white/10 pb-5 mb-6 flex-shrink-0">
           <div>
-            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-300/80">MEMORY SUMMARY 2022 — 2026 &amp; FOREVER · 544 MOMENTS</span>
-            <h4 class="text-xl sm:text-2xl font-serif font-bold text-white mt-1">致亲爱的珍珠 · 五载春秋的深情长卷</h4>
+            <span class="letter-kicker">OUR LOVE LETTER · 2021 — 2026 &amp; FOREVER</span>
+            <h4 class="text-xl sm:text-3xl font-serif font-bold text-white mt-2 tracking-wide">致亲爱的珍珠 · 把日子写成情书</h4>
+            <p class="letter-subtitle">1782 天 · 500 多张照片 · 想对你说的都在这里</p>
           </div>
-          <button id="closeClimaxModalBtn" class="text-zinc-400 hover:text-white text-lg w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">✕</button>
+          <button id="closeClimaxModalBtn" class="letter-close" aria-label="关闭回忆长信">✕</button>
         </div>
 
-        <div class="space-y-4 text-xs sm:text-sm leading-relaxed text-zinc-300 font-serif italic max-h-[60vh] overflow-y-auto pr-1">
-          <p class="text-amber-200/90 font-bold not-italic text-sm sm:text-base">
-            亲爱的珍珠：
-          </p>
-          <p class="indent-6">
-            展信舒颜。在这个安静的夜晚，我把这 540 多张照片、十余段鲜活的录像一一重新翻看。从 2021 年冬天的初遇心动（2021.12.11 23:00），到 2026 年新春的晨光拂晓，整整五载春秋，一千七百多个日日夜夜，四万多个小时的悄然相伴……不知不觉间，我们已经一起走过了这么长的路。
-          </p>
-          <p class="indent-6">
-            故事最初的起点，在 2022 年初春微凉的风里。相册最初的那几张相片，定格了你最初望向我时的眼神与羞涩笑意。第一眼的悸动，悄悄变成了往后所有岁月里最笃定的心甘情愿。从那一天起，“我们”这两个字，有了生命中最温暖的注脚。
-          </p>
-          <p class="indent-6">
-            我还清晰记得那个夏天——林荫小道被树影切碎的斑驳阳光、手心里冒着白气的冰镇汽水，还有海风吹拂起你发梢的瞬间。黄昏把天空晕染成大片大片的橘粉色，你转过头对我笑，那一刻我在心里悄悄许下愿望：真希望时光能走得慢一点，让晚霞与你的温柔永远停留在这一秒。
-          </p>
-          <p class="indent-6">
-            后来到了初雪纷飞的冬夜。零下几度的寒风里，两只冻得发红的手紧紧揣进同一个大衣口袋，掌心传来的温度把整个冬天都烘得温热。还有跨年夜夜空里绽放的漫天烟火，在震耳欲聋的欢呼声里，我转过头看着仰望夜空的你。从那一刻起我就明白，所有关于未来的憧憬与期许，全都有了你的名字。
-          </p>
-          <p class="indent-6">
-            再后来，相册里的记忆越来越厚。相恋一周年时我们吹过山顶微凉的晨风，踩过海浪褪去的细沙；尤其是 2023 年冬天的相册里，满满当当塞下了近三百张你搞怪、大笑、撒娇的真实抓拍——每一张生动的表情、每一次毫无防备的笑容，都是我镜头里唯一且永远的女主角。
-          </p>
-          <p class="indent-6">
-            走过 2024，走过 2025，直到今天 2026。四年春秋，生活或许常常归于细水长流的平淡，但因为有你，每一顿热气腾腾的便饭、每一次生病时的陪伴、每一句日常的叮咛，都熠熠生辉、充满甜味。
-          </p>
-          <p class="indent-6">
-            这五百多张照片替我们记住了过去所有的心动，但我们之间最好的一章，永远是明天清晨睁开眼依然牵着你手的踏实。谢谢你走进我的生命，谢谢你把最好的爱和温柔交给我。往后的每一个春夏秋冬，无论风雨还是晴天，我都会紧紧牵着你的手，走过漫长岁月，直到时光的尽头。
-          </p>
+        <div class="letter-content flex-1 min-h-0 overflow-y-auto pr-2 sm:pr-4">
+          <p class="letter-salutation">亲爱的珍珠：</p>
+          <p>转眼间已经将近 5 年了，认识了你 1782 天了。我们第一天认识就加了你的好友，那天晚上我们打电话打到早上 4 点，后来我们加了微信。</p>
+          <p>半个月后，2021.12.25，我们关系更好了。你说我不会谈恋爱，从那时候起我们就开始老公老婆地叫着，数着数着，你真成了我老婆。后来疫情来了，你被隔离在元山——我说吃什么、喝什么都没人照顾你，只能进不能出，我说进去陪你，被你拦住了。</p>
+          <p>1 月 24 号晚上，你不想应酬，半夜 11 点多来找我了。你喝多了，把其他人都送了回去，打车来找我，到万源新城。我开心地下楼去找你，就看见你在打电话。我从你背后出现，你转身看到我，直接就扑进我的怀里，抱着我就在那哭，像一个受了委屈的小女孩。</p>
+          <p>你身上有淡淡的香味，很好闻，我很喜欢；但你也带着很大的酒气。你抱得很紧，一边哭一边安慰自己："珍珠不哭，珍珠不哭"。你很用力地抱着我，我也很用力地抱着你。我看你喝多了想送你回去，你说想跟我在一起；我说给你叫车，你就是不回去。没办法，我把你带回我这，让你去洗澡，把你衣服上和鞋子上的脏东西擦干净，晚上我们就在一起了。</p>
+          <p>到 3 月份，疫情更严重了，我们隔离在万华花园。这两个月，我们解锁了很多菜，一起做了很多饭。其实很多我们经历的画面，我到现在还能清晰地出现在脑海里。</p>
+          <p>中间我们也发生了很多开心和不开心的事，但那都是我生命中不可磨灭的珍贵回忆。</p>
+          <p>年底第二波疫情，室友一个一个地阳了，最后你也阳了。还好那几天我居家办公，每天想着法地做一些对身体好的吃的，每天换着花样给你做，其实我挺慌的。你是一个爱干净的小姑娘，几天没洗澡实在受不了了。那一次是吓我最狠的一次——站不住、晕倒，真的吓到我了。不过还好，过了一会你缓过来了，万幸。</p>
+          <p>然后这一年，我们一起去了阜阳，你带我吃了阜阳卷馍、格拉条；我们去了景德镇，吃了很多好吃的；我们半夜丢垃圾跑到南京；我们去杭州去西湖；我们去金山看海；我们去西塘。我们去的地方好少啊，我还有很多地方没来得及带你去。</p>
+          <p>你换了新房，我陪你装修。我们买的房间还被淹了，再后来第二次装修，中间也是出了不少力。看到你认真干活的样子，还是很可爱的。</p>
+          <p>其实我从没想过放弃你，只是有时候我也很不知所措。我想把所有的温柔都给你，但很多时候被自己的情绪给搞砸了，嘴也笨，曾被自己气哭了。</p>
+          <p>这几天翻看旧手机，和以前保存的我们的回忆。我以为有很多，只找到了 500 多张，一张一张我都看了。那是我们以前的点点滴滴，这些画面会永远刻在我的脑子里。你是我用心爱了四年的人。</p>
+          <p>我好想你，其实每天都想。想抱着你，想你在我怀里拱我肩膀；想让你三餐吃上热饭——你的胃不好；想让你睡得好，不要熬夜；想让你穿得暖，冬天你容易手脚冰凉；想让你健健康康、快快乐乐；想照顾你，想让你有我陪；想让我们永远不吵架，想让我们一辈子都恩爱，永远不分开。</p>
+          <p>我还记得你之前说过，我们一起等一下晴天，下雨了却没有一起等。</p>
+          <p>这几年我们都有自己焦虑的事，发生了很多不开心的事，但是我从没有想过停止爱你。</p>
+          <p>有很多回忆，也有很多对未来的畅想，还没来得及和你一起去实现，我很不甘心。</p>
+          <p>我最希望的，还是看到你开开心心的，赚很多很多的钱，少点忧愁和焦虑，多点健康，永远快乐。</p>
+          <p>我还爱你，也会一直爱你。</p>
+          <p class="font-serif text-white mt-5" style="text-align:right">生日快乐。♥</p>
+          <p class="font-serif font-bold gradient-text-gold text-lg mt-1" style="text-align:right">爱你的 刘禄洋</p>
         </div>
 
-        <div class="mt-8 pt-5 border-t border-white/10 flex items-end justify-between">
-          <div>
-            <p class="text-[10px] sm:text-xs text-zinc-500 font-mono">2021.12.11 — 2026.01 &amp; Forever</p>
-            <p class="text-xs text-rose-400 font-serif italic mt-0.5">Forever With You, My Pearl</p>
-          </div>
-          <div class="text-right">
-            <p class="text-xs text-zinc-400 font-serif mb-1">永远爱你的</p>
-            <span class="font-serif font-bold text-base sm:text-lg gradient-text-gold tracking-wider">♥ 刘禄洋</span>
-          </div>
+        <div class="mt-7 pt-5 border-t border-white/10 flex items-center justify-between gap-4 flex-shrink-0">
+          <p class="text-[10px] sm:text-xs text-zinc-500 font-mono">2021.12.11 — 此刻 · 未来</p>
+          <p class="text-xs text-rose-300/90 font-serif italic">Forever With You, My Pearl</p>
         </div>
       </div>
     </div>
@@ -384,11 +390,11 @@
   </div>
 
   <!-- Application Modules (High-Performance Master Architecture) -->
-  <script src="js/photos-data.js?v=20211211_v1"></script>
+  <script src="js/photos-data.js?v=20261027_v2"></script>
   <script src="js/photo-thumbs.js"></script>
   <script src="js/neural-synapse.js"></script>
-  <script src="js/sphere3d.js?v=20211211_v1"></script>
+  <script src="js/sphere3d.js?v=20261027_v2"></script>
   <script src="js/quantum-heart.js"></script>
-  <script src="js/app.js?v=20211211_v1"></script>
+  <script src="js/app.js?v=20261027_v2"></script>
 </body>
 </html>
