@@ -33,6 +33,11 @@ const server = http.createServer((req, res) => {
     const contentType = MIME[ext] || 'application/octet-stream';
     const totalSize = stats.size;
 
+    const isCodeAsset = (ext === '.html' || ext === '.js' || ext === '.css' || ext === '.json');
+    const cacheHeader = isCodeAsset
+      ? 'no-cache, no-store, must-revalidate, max-age=0'
+      : 'public, max-age=3600';
+
     // Support Audio/Video HTTP 206 Partial Content (smooth seeking)
     const range = req.headers.range;
     if (range && (ext === '.mp4' || ext === '.m4a' || ext === '.mp3')) {
@@ -54,7 +59,9 @@ const server = http.createServer((req, res) => {
         'Content-Length': totalSize,
         'Content-Type': contentType,
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=3600'
+        'Cache-Control': cacheHeader,
+        'Pragma': isCodeAsset ? 'no-cache' : 'public',
+        'Expires': isCodeAsset ? '0' : '3600'
       });
       fs.createReadStream(filePath).pipe(res);
     }
