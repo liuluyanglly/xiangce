@@ -317,6 +317,14 @@ class EternalApp {
         badge: '🔥 热门主打恋曲'
       },
       {
+        id: 'wanfengshaozoujiunian',
+        title: '晚风捎走旧念',
+        artist: '陆扬',
+        type: 'song',
+        src: 'assets/audio/wanfengshaozoujiunian.m4a',
+        badge: '🌙 汽水音乐心动热榜'
+      },
+      {
         id: 'lixiangsanxun',
         title: '理想三旬',
         artist: '陈鸿宇',
@@ -1218,6 +1226,7 @@ class EternalApp {
     if (index < 0 || index >= this.playlist.length) return;
     this.currentTrackIndex = index;
     const track = this.playlist[this.currentTrackIndex];
+    this.syncMusicUI(true);
     this.audioElement.src = track.src;
     this.audioElement.volume = 1.0;
     this.audioElement.muted = false;
