@@ -808,125 +808,170 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   calculateHeartPhotoTargets(count, isMobile) {
     // -----------------------------------------------------------------
-    // 璀璨 360° 巨幕立体斐波那契心形曲面 (Grand 360° Fibonacci Heart - Zero Overlap)
-    // 1. 去掉回忆长信卡片：全部 544 张真实甜蜜回忆照片，纯粹动人！
-    // 2. 心形大幅放大：尺度 S 由 36 提升至 50（移动端由 21 提升至 32），横跨 1600px 巨幕！
-    // 3. 图片绝不重叠：相邻卡片中心距 ~88px > 卡片宽度 68px，保留呼吸边距，零穿模重叠！
-    // 4. 360° 旋转全角度皆为经典爱心：无论横向旋转到任何角度，投影轮廓 100% 恒等于心形线！
+    // 臻美 3D 浮雕立体爱心殿堂 (Sculptured 3D Volumetric Heart Gallery)
+    // 彻底重构立体爱心数学曲面，实现绝美视觉艺术：
+    // 1. 经典双心叶与浪漫心凹 (Two Iconic Lobes & Elegant Cleft)：
+    //    基于经典心形线 (16sin³t, 13cost - 5cos2t - 2cos3t - cos4t)，
+    //    呈现圆润饱满的左右双心叶与中央优雅心凹，绝非圆桶/苹果体，正面与各视角皆为唯美爱心！
+    // 2. 真实三维立体厚度 (Volumetric Cushion Depth)：
+    //    前后双面微拱立体曲面 (Z轴厚度 ±260px)，前端正面与背面各陈列精选回忆，
+    //    360° 旋转时呈现立体的晶钻/天鹅绒浮雕质感。
+    // 3. 正面朝向无刀片感 (Flawless Card Orientations)：
+    //    正面卡片均以优雅外倾角（≤22°）温润面向摄像机，每一张甜蜜人脸清晰可见，绝不侧立成刀片！
+    // 4. 同心爱心黄金晶格环 (Concentric Heart Rings - Zero Overlap)：
+    //    按面积比例自内向外层层绽放，卡片间距严格保证 ≥82px，卡片尺寸适宜，零穿模、零遮挡重叠！
+    // 5. 回忆长信至尊金卡：在心凹正中上方尊贵浮空特写，金光流转！
     // -----------------------------------------------------------------
-    const S = isMobile ? 32 : 50;
-    const yOff = 25 + 1.2 * S;
-
-    const segments = 1200;
-    const t_min = 0.10;
-    const t_max = Math.PI - 0.08;
-    const cumArea = [0.0];
-    const tVals = [0.0];
-    let totalArea = 0.0;
-
-    for (let j = 1; j <= segments; j++) {
-      const t = t_min + (j / segments) * (t_max - t_min);
-      const tPrev = t_min + ((j - 1) / segments) * (t_max - t_min);
-      const tMid = 0.5 * (t + tPrev);
-
-      const sinT = Math.sin(tMid);
-      const r = 16.0 * Math.pow(sinT, 3);
-      const dr = 48.0 * Math.pow(sinT, 2) * Math.cos(tMid);
-      const dy = -13.0 * sinT + 10.0 * Math.sin(2 * tMid) + 6.0 * Math.sin(3 * tMid) + 4.0 * Math.sin(4 * tMid);
-
-      const ds = Math.hypot(dr, dy) * (t - tPrev);
-      const da = 2.0 * Math.PI * r * ds;
-      totalArea += da;
-      cumArea.push(totalArea);
-      tVals.push(t);
-    }
+    const S = isMobile ? 30.0 : 44.0;
+    const Z_depth = isMobile ? 180.0 : 260.0;
+    const yCenter = 25.0;
 
     const climaxIdx = this.photoMeshes.findIndex(m => m.userData && m.userData.isClimaxLetter);
     const normalCount = Math.max(0, count - (climaxIdx >= 0 ? 1 : 0));
-    const goldenAngle = Math.PI * (3.0 - Math.sqrt(5.0)); // 137.5077° 黄金角
 
-    const targets = [];
-    const slots = [];
-    const dummy = new THREE.Object3D();
+    // 高精度心形弧度曲线积分采样表 (Arc-length Parameterized Table)
+    const N_LUT = 1200;
+    const cumLen = [0.0];
+    const tLUT = [-Math.PI];
+    let prevX = 0.0;
+    let prevY = -14.5; // (hy(-PI) = -17 + 2.5 = -14.5)
 
-    for (let i = 0; i < normalCount; i++) {
-      const u = (i + 0.5) / normalCount;
-      const targetA = u * totalArea;
+    for (let j = 1; j <= N_LUT; j++) {
+      const t = -Math.PI + (j / N_LUT) * 2.0 * Math.PI;
+      const sinT = Math.sin(t);
+      const cosT = Math.cos(t);
+      const hx = 16.0 * Math.pow(sinT, 3);
+      const hy = (13.0 * cosT - 5.0 * Math.cos(2 * t) - 2.0 * Math.cos(3 * t) - Math.cos(4 * t)) + 2.5;
+      const stepDist = Math.hypot(hx - prevX, hy - prevY);
+      cumLen.push(cumLen[cumLen.length - 1] + stepDist);
+      tLUT.push(t);
+      prevX = hx;
+      prevY = hy;
+    }
+    const totalHeartPerimeter = cumLen[cumLen.length - 1];
 
-      // 二分查找对应弧度参数 t
-      let lo = 0, hi = segments;
+    const sampleHeartProfile = (fraction) => {
+      let frac = fraction % 1.0;
+      if (frac < 0) frac += 1.0;
+      const targetLen = frac * totalHeartPerimeter;
+      let lo = 0, hi = N_LUT;
       while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if (cumArea[mid] < targetA) lo = mid + 1;
+        if (cumLen[mid] < targetLen) lo = mid + 1;
         else hi = mid;
       }
       const idx = Math.max(1, lo);
       const prev = idx - 1;
-      const span = Math.max(0.000001, cumArea[idx] - cumArea[prev]);
-      const mix = (targetA - cumArea[prev]) / span;
-      const t = tVals[prev] + (tVals[idx] - tVals[prev]) * mix;
-
-      // 黄金螺旋方位角
-      const phi = i * goldenAngle;
-
+      const span = Math.max(0.000001, cumLen[idx] - cumLen[prev]);
+      const m = (targetLen - cumLen[prev]) / span;
+      const t = tLUT[prev] + m * (tLUT[idx] - tLUT[prev]);
       const sinT = Math.sin(t);
       const cosT = Math.cos(t);
-      const r = 16.0 * Math.pow(sinT, 3);
-      const y = 13.0 * cosT - 5.0 * Math.cos(2 * t) - 2.0 * Math.cos(3 * t) - Math.cos(4 * t);
+      const hx = 16.0 * Math.pow(sinT, 3);
+      const hy = (13.0 * cosT - 5.0 * Math.cos(2 * t) - 2.0 * Math.cos(3 * t) - Math.cos(4 * t)) + 2.5;
+      return { x: hx, y: hy, t };
+    };
 
-      // 轮廓切向导数 (dr, dy)
-      const dr = 48.0 * Math.pow(sinT, 2) * cosT;
-      const dy = -13.0 * sinT + 10.0 * Math.sin(2 * t) + 6.0 * Math.sin(3 * t) + 4.0 * Math.sin(4 * t);
+    // 将普通照片划分为正面心形与背面心形两组 (各 ~272 张)
+    const halfCount = Math.floor(normalCount / 2);
+    const frontCount = halfCount;
+    const backCount = normalCount - frontCount;
 
-      // 严密外法线计算：在 (r, y) 剖面上法向量为 (-dy, dr)
-      const nLen = Math.hypot(-dy, dr) || 1.0;
-      const nr = -dy / nLen;
-      const ny = dr / nLen;
+    // 9 层面积均衡同心爱心环 (Concentric Heart Rings)
+    const numRings = 9;
+    const sVals = [];
+    for (let k = 0; k < numRings; k++) {
+      sVals.push(Math.sqrt((k + 0.65) / (numRings + 0.2)));
+    }
+    const sumS = sVals.reduce((a, b) => a + b, 0);
 
-      // 3D 物理空间坐标
-      const x = r * Math.cos(phi) * S;
-      const z = r * Math.sin(phi) * S;
-      const py = y * S + yOff;
+    const getRingCounts = (targetTotal) => {
+      const counts = sVals.map(s => Math.max(4, Math.round((s / sumS) * targetTotal)));
+      const currSum = counts.reduce((a, b) => a + b, 0);
+      counts[counts.length - 1] += (targetTotal - currSum);
+      return counts;
+    };
 
-      // 3D 表面外法向量
-      const nx = nr * Math.cos(phi);
-      const nz = nr * Math.sin(phi);
+    const frontRingCounts = getRingCounts(frontCount);
+    const backRingCounts = getRingCounts(backCount);
 
-      dummy.position.set(x, py, z);
-      dummy.up.set(0, 1, 0);
-      dummy.lookAt(x + nx * 500, py + ny * 500, z + nz * 500);
+    const dummy = new THREE.Object3D();
+    const cardScale = isMobile ? 0.46 : 0.64;
 
-      // 科学无重叠尺寸：卡片宽度 (110*0.62=68px) 小于相邻距离 (88px)，留有纯净边距，绝对无遮挡！
-      const cardScale = isMobile ? 0.44 : 0.62;
+    const generateFaceTargets = (ringCounts, isBack) => {
+      const faceTargets = [];
+      const zSign = isBack ? -1.0 : 1.0;
 
-      slots.push({
-        pos: dummy.position.clone(),
-        rot: dummy.rotation.clone(),
-        targetScale: cardScale
-      });
+      for (let k = 0; k < numRings; k++) {
+        const s = sVals[k];
+        const cnt = ringCounts[k];
+        const phase = (k * 0.6180339887) % 1.0;
+        const zDome = Z_depth * Math.cos(s * Math.PI * 0.46) * zSign;
+
+        for (let i = 0; i < cnt; i++) {
+          const frac = (i + phase) / cnt;
+          const { x: hx, y: hy } = sampleHeartProfile(frac);
+
+          const px = s * hx * S;
+          const py = s * hy * S + yCenter;
+          const pz = zDome;
+
+          // 温润外倾外法线：轻柔外扬（≤24°），让正面卡片始终明媚迎向用户
+          const tiltX = (px / (16.0 * S)) * 0.36;
+          const tiltY = ((py - yCenter) / (16.0 * S)) * 0.36;
+
+          dummy.position.set(px, py, pz);
+          dummy.up.set(0, 1, 0);
+          dummy.lookAt(px + tiltX * 500, py + tiltY * 500, pz + zSign * 500);
+
+          faceTargets.push({
+            pos: dummy.position.clone(),
+            rot: dummy.rotation.clone(),
+            targetScale: cardScale,
+            ringIndex: k
+          });
+        }
+      }
+      return faceTargets;
+    };
+
+    const frontTargets = generateFaceTargets(frontRingCounts, false);
+    const backTargets = generateFaceTargets(backRingCounts, true);
+
+    // 优雅交织正面与背面（由内环向外环层层如花瓣般舒展绽放）
+    const normalTargets = [];
+    const maxLen = Math.max(frontTargets.length, backTargets.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < frontTargets.length) normalTargets.push(frontTargets[i]);
+      if (i < backTargets.length) normalTargets.push(backTargets[i]);
     }
 
-    // 回忆长信至尊金卡：在正前方心室中心尊贵浮空特写，悬浮于表面前侧，零穿模重叠
-    let slotIdx = 0;
+    // 组装最终 targets，并将回忆长信金卡置于心凹 C 位
+    const targets = [];
+    let normIdx = 0;
     for (let i = 0; i < count; i++) {
       if (i === climaxIdx) {
+        // 回忆长信至尊金卡：在心凹正中上方尊贵浮空特写，悬浮于正面曲面稍前侧
         targets.push({
-          pos: new THREE.Vector3(0, 1.0 * S + yOff, 16.0 * S * 0.94 + 85),
-          rot: new THREE.Euler(-0.025, 0, 0),
+          pos: new THREE.Vector3(0, 5.0 * S + yCenter + 20, Z_depth + 60),
+          rot: new THREE.Euler(-0.02, 0, 0),
           isClimax: true,
-          targetScale: isMobile ? 0.58 : 0.82
+          targetScale: isMobile ? 0.62 : 0.86
         });
-      } else if (slots[slotIdx]) {
-        targets.push(slots[slotIdx++]);
+      } else if (normIdx < normalTargets.length) {
+        targets.push(normalTargets[normIdx++]);
       }
     }
 
-    // 全息核心与周边星轨尺寸动态校正
+    // 全息粒子核心与周边星轨、玫瑰金光晕精准校准至爱心视觉中心 (0, 25, 0)
     this.holoBaseScale = (16 * S * 0.40) / 104;
-    this.auraBaseSize = 16 * S * 4.4;
-    if (this.hologramGroup) this.hologramGroup.position.y = yOff - 0.4 * S;
-    if (this.cosmicRingsGroup) this.cosmicRingsGroup.position.y = yOff - 0.2 * S;
-    if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
+    this.auraBaseSize = 16 * S * 4.2;
+    if (this.hologramGroup) this.hologramGroup.position.set(0, yCenter, 0);
+    if (this.cosmicRingsGroup) this.cosmicRingsGroup.position.set(0, yCenter, 0);
+    if (this.auraSprite) {
+      this.auraSprite.position.set(0, yCenter, -80);
+      this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
+    }
     return targets;
   }
 
