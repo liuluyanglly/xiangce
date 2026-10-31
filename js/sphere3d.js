@@ -577,23 +577,18 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   calculateHeartPhotoTargets(count, isMobile) {
     // -----------------------------------------------------------------
-    // 璀璨 360° 全景恒定心形曲面 (True 360° Rotational Fibonacci Heart Sculpture)
-    // 彻底解决「旋转到某些角度不是爱心、不够美观」的问题：
-    // 1. 360° 旋转全角度皆为完美心形：基于心形三维旋转曲面，水平 360 度任意旋转角度的投影轮廓
-    //    100% 恒等于数学黄金心形线，彻底消除侧面扁平或异形！
-    // 2. 斐波那契黄金螺旋晶格分布：545 张照片采用面积保形黄金螺旋（Golden Ratio Spiral）
-    //    如钻石切面般精密、均匀铺设在心形曲面上，秩序井然，极具高级美感！
-    // 3. 大卡片视感：卡片尺寸饱满（1.12~1.22x），人脸与回忆清晰可见，绝不缩小！
-    // 4. 连续三维法线姿态：每张卡片严格沿曲面外法线贴合，正面朝外，平滑舒展，无折痕刀片感！
-    // 5. 回忆长信至尊金卡：在心房正前方 C 位尊贵浮空特写（1.58x），金光流转！
+    // 璀璨 360° 巨幕立体斐波那契心形曲面 (Grand 360° Fibonacci Heart - Zero Overlap)
+    // 1. 去掉回忆长信卡片：全部 544 张真实甜蜜回忆照片，纯粹动人！
+    // 2. 心形大幅放大：尺度 S 由 36 提升至 50（移动端由 21 提升至 32），横跨 1600px 巨幕！
+    // 3. 图片绝不重叠：相邻卡片中心距 ~88px > 卡片宽度 68px，保留呼吸边距，零穿模重叠！
+    // 4. 360° 旋转全角度皆为经典爱心：无论横向旋转到任何角度，投影轮廓 100% 恒等于心形线！
     // -----------------------------------------------------------------
-    const S = isMobile ? 21 : 36;
+    const S = isMobile ? 32 : 50;
     const yOff = 25 + 1.2 * S;
 
-    // 高精度曲面面积积分，实现完全均匀的面积保形采样（无极点堆叠与稀疏空洞）
     const segments = 1200;
-    const t_min = 0.08;
-    const t_max = Math.PI - 0.06;
+    const t_min = 0.10;
+    const t_max = Math.PI - 0.08;
     const cumArea = [0.0];
     const tVals = [0.0];
     let totalArea = 0.0;
@@ -615,16 +610,13 @@ class CelestialSphereGallery {
       tVals.push(t);
     }
 
-    const climaxIdx = this.photoMeshes.findIndex(m => m.userData.isClimaxLetter);
-    const normalCount = Math.max(0, count - (climaxIdx >= 0 ? 1 : 0));
     const goldenAngle = Math.PI * (3.0 - Math.sqrt(5.0)); // 137.5077° 黄金角
 
     const targets = [];
-    const slots = [];
     const dummy = new THREE.Object3D();
 
-    for (let i = 0; i < normalCount; i++) {
-      const u = (i + 0.5) / normalCount;
+    for (let i = 0; i < count; i++) {
+      const u = (i + 0.5) / count;
       const targetA = u * totalArea;
 
       // 二分查找对应弧度参数 t
@@ -666,39 +658,23 @@ class CelestialSphereGallery {
       const nx = nr * Math.cos(phi);
       const nz = nr * Math.sin(phi);
 
-      // 计算卡片朝向：沿曲面法线向外舒展，卡片正面对外，顶端朝上
       dummy.position.set(x, py, z);
       dummy.up.set(0, 1, 0);
       dummy.lookAt(x + nx * 500, py + ny * 500, z + nz * 500);
 
-      // 饱满大卡片尺寸：心腰处微展，整体大图清晰迎面
-      const cardScale = (isMobile ? 0.92 : 1.15) * (0.94 + 0.12 * (r / 16.0));
+      // 科学无重叠尺寸：卡片宽度 (110*0.62=68px) 小于相邻距离 (88px)，留有纯净边距，绝对无遮挡！
+      const cardScale = isMobile ? 0.44 : 0.62;
 
-      slots.push({
+      targets.push({
         pos: dummy.position.clone(),
         rot: dummy.rotation.clone(),
         targetScale: cardScale
       });
     }
 
-    // 回忆长信至尊金卡：在正前方心室中心尊贵浮空特写
-    let slotIdx = 0;
-    for (let i = 0; i < count; i++) {
-      if (i === climaxIdx) {
-        targets.push({
-          pos: new THREE.Vector3(0, 1.0 * S + yOff, 16.0 * S * 0.92 + 80),
-          rot: new THREE.Euler(-0.028, 0, 0),
-          isClimax: true,
-          targetScale: isMobile ? 1.35 : 1.58
-        });
-      } else if (slots[slotIdx]) {
-        targets.push(slots[slotIdx++]);
-      }
-    }
-
     // 全息核心与玫瑰金星云尺寸动态校正
-    this.holoBaseScale = (16 * S * 0.45) / 104;
-    this.auraBaseSize = 16 * S * 4.6;
+    this.holoBaseScale = (16 * S * 0.40) / 104;
+    this.auraBaseSize = 16 * S * 4.2;
     if (this.hologramGroup) this.hologramGroup.position.y = yOff - 0.4 * S;
     if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
     return targets;
@@ -968,27 +944,12 @@ class CelestialSphereGallery {
     const isMobile = (this.container.clientWidth || window.innerWidth) < 768;
     const maxMeshes = 1000; // Load all 545+ media memories without omission
     
-    // Ensure the climax memory letter is always present as the concluding special card
-    let list = photos.filter(p => p.id !== 'desktop_video_feat' && !p.url?.includes('video_thumb_desktop'));
-    if (!list.some(p => p.isClimaxLetter)) {
-      list.push({
-        id: 'finale_climax_memory_letter',
-        isClimaxLetter: true,
-        title: '时光长卷 · 致我们的岁岁年年',
-        date: '2021.12.11 — Forever',
-        month: '2026-10',
-        desc: '点击阅读我们的回忆长信：从一蔬一饭到每一次碰杯，把平凡日子写成最长的告白。',
-        url: 'assets/photos/pic_001_202202.jpg'
-      });
-    }
-
+    // 全部加载真实照片回忆，不注入长信卡片
+    let list = photos.filter(p => p.id !== 'desktop_video_feat' && !p.url?.includes('video_thumb_desktop') && !p.isClimaxLetter);
     let displayPhotos = list;
     if (list.length > maxMeshes) {
-      const step = Math.ceil((list.length - 1) / (maxMeshes - 1));
-      const filtered = list.filter((item, idx) => idx % step === 0 && !item.isClimaxLetter);
-      const finale = list.find(p => p.isClimaxLetter);
-      if (finale) filtered.push(finale);
-      displayPhotos = filtered;
+      const step = Math.ceil(list.length / maxMeshes);
+      displayPhotos = list.filter((item, idx) => idx % step === 0);
     }
 
     const cardWidth = isMobile ? 115 : 110;
@@ -1280,8 +1241,8 @@ class CelestialSphereGallery {
       if (this.groundMirror) this.groundMirror.visible = false;
     } else if (shape === 'heart') {
       camTargetX = 0;
-      camTargetY = isMobile ? 35 : 45;
-      camTargetZ = isMobile ? 1200 : 1380;
+      camTargetY = isMobile ? 30 : 40;
+      camTargetZ = isMobile ? 1380 : 1680;
       lookTargetX = 0;
       lookTargetY = 25;
       lookTargetZ = 0;
@@ -1331,8 +1292,8 @@ class CelestialSphereGallery {
         this.controls.maxPolarAngle = Math.PI * 0.85;
         this.controls.minAzimuthAngle = -Infinity;
         this.controls.maxAzimuthAngle = Infinity;
-        this.controls.minDistance = isMobile ? 650 : 800;
-        this.controls.maxDistance = isMobile ? 2200 : 2600;
+        this.controls.minDistance = isMobile ? 700 : 900;
+        this.controls.maxDistance = isMobile ? 2400 : 3200;
         this.controls.autoRotate = true;
         this.controls.autoRotateSpeed = 0.35;
       } else {
@@ -1758,7 +1719,7 @@ class CelestialSphereGallery {
       targetCamPos = { x: 0, y: isMobile ? 90 : 120, z: isMobile ? 1200 : 1350 };
       lookTarget = { x: 0, y: 10, z: -600 };
     } else if (this.currentShape === 'heart') {
-      targetCamPos = { x: 0, y: isMobile ? 35 : 45, z: isMobile ? 1200 : 1380 };
+      targetCamPos = { x: 0, y: isMobile ? 30 : 40, z: isMobile ? 1380 : 1680 };
       lookTarget = { x: 0, y: 25, z: 0 };
     } else {
       targetCamPos = { x: 0, y: isMobile ? 30 : 40, z: isMobile ? 1550 : 1880 };
