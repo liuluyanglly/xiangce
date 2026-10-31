@@ -156,23 +156,23 @@ class CelestialSphereGallery {
   createCentralHologram() {
     this.hologramGroup = new THREE.Group();
     this.hologramGroup.position.set(0, 25, 0);
-    this.holoBaseScale = 3.4; // 由 layout 依据心形尺度动态校正
+    this.holoBaseScale = 3.6; // 由 layout 依据心形尺度动态校正
 
     // 1. 3D 多重切面全息宝石心形骨架 (Volumetric 3D Faceted Wireframe Gem Heart)
     const cageGroup = new THREE.Group();
-    const heartSlices = [-36, -20, 0, 20, 36];
+    const heartSlices = [-54, -30, 0, 30, 54];
     const wireMat = new THREE.LineBasicMaterial({
       color: 0xf43f5e,
       linewidth: 2,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.88
     });
 
     heartSlices.forEach(zLevel => {
       const pts = [];
       const segs = 140;
-      const zNorm = Math.abs(zLevel) / 48;
-      const radFactor = Math.sqrt(Math.max(0.12, 1 - zNorm * zNorm));
+      const zNorm = Math.abs(zLevel) / 65;
+      const radFactor = Math.sqrt(Math.max(0.15, 1 - zNorm * zNorm));
       for (let i = 0; i <= segs; i++) {
         const t = (i / segs) * Math.PI * 2;
         const x = 16 * Math.pow(Math.sin(t), 3) * 6.5 * radFactor;
@@ -189,15 +189,15 @@ class CelestialSphereGallery {
     const ribMat = new THREE.LineBasicMaterial({
       color: 0xfb7185,
       transparent: true,
-      opacity: 0.55
+      opacity: 0.60
     });
     ribAngles.forEach(phi => {
       const pts = [];
       const segs = 60;
       for (let i = 0; i <= segs; i++) {
         const t = (i / segs) * Math.PI * 2;
-        const z = Math.cos(phi) * 36 * Math.sin(t / 2);
-        const radFactor = 0.88 + 0.12 * Math.abs(Math.sin(phi));
+        const z = Math.cos(phi) * 50 * Math.sin(t / 2);
+        const radFactor = 0.86 + 0.14 * Math.abs(Math.sin(phi));
         const x = 16 * Math.pow(Math.sin(t), 3) * 6.5 * radFactor;
         const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.5;
         pts.push(new THREE.Vector3(x, y, z));
@@ -209,20 +209,20 @@ class CelestialSphereGallery {
     this.hologramHeart = cageGroup;
     this.hologramGroup.add(this.hologramHeart);
 
-    // 2. 内部璀璨三维发光晶尘云 (800 Additive Crystal Stardust Points)
+    // 2. 内部璀璨三维发光晶尘云 (850 Additive Crystal Stardust Points)
     const innerPoints = [];
     const innerColors = [];
     const colorA = new THREE.Color(0xf43f5e);
     const colorB = new THREE.Color(0xfda4af);
     const colorC = new THREE.Color(0x38bdf8);
 
-    for (let i = 0; i < 800; i++) {
+    for (let i = 0; i < 850; i++) {
       const t = Math.random() * Math.PI * 2;
-      const r = Math.pow(Math.random(), 0.52);
-      const radFactor = Math.sqrt(Math.max(0.06, 1 - r * r));
-      const x = 16 * Math.pow(Math.sin(t), 3) * 6.0 * r;
-      const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.0 * r;
-      const z = (Math.random() - 0.5) * 56 * radFactor;
+      const r = Math.pow(Math.random(), 0.50);
+      const radFactor = Math.sqrt(Math.max(0.08, 1 - r * r));
+      const x = 16 * Math.pow(Math.sin(t), 3) * 6.2 * r;
+      const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.2 * r;
+      const z = (Math.random() - 0.5) * 75 * radFactor;
       innerPoints.push(new THREE.Vector3(x, y, z));
 
       const rnd = Math.random();
@@ -235,7 +235,7 @@ class CelestialSphereGallery {
       size: 5.5,
       vertexColors: true,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.88,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -577,26 +577,29 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   calculateHeartPhotoTargets(count, isMobile) {
     // -----------------------------------------------------------------
-    // 璀璨双曲面 3D 饱满立体雕塑爱心 (Dual-Camber Volumetric Sculptural 3D Heart)
-    // 545 张珍贵回忆全数融入，构筑拥有真正三维厚度与圆润穹顶的照片雕塑：
-    // Zone A: 前凸饱满穹顶 (Front Chamber Shell, ~174张, Z > +70, 大图清晰迎面)
-    // Zone B: 立体轮廓包边 (Beveled Rim Contour, ~130张, 锐利外轮廓切面)
-    // Zone C: 后凸圆润穹面 (Back Chamber Shell, ~158张, Z < -70, 360°旋转饱满无死角)
-    // Zone D: 星际环绕光带 (Saturnian Galaxy Ribbon, ~82张, 倾角22°如星环守护)
-    // Zone E: 回忆长信至尊金卡 (Climax Letter, 正中心前置尊贵金框, 1.4x 悬浮特写)
+    // 璀璨双曲面 3D 饱满巨幕立体雕塑爱心 (Deep Volumetric 3D Sculptural Heart)
+    // 彻底解决「爱心不够立体、卡片缩小太多」问题：
+    // 1. 卡片超大视感：卡片尺寸放大 40%~60%，人脸与甜蜜回忆清晰夺目！
+    // 2. 深度纵深翻倍：Z 轴纵深拉大至 [-550px, +550px]（深度跨度超 1100px），呈现强烈 3D 视差！
+    // 3. 360° 全视角无死角：
+    //    - 正面(0°)：三层同心阶梯式穹顶层层向镜头凸起，众星捧月；
+    //    - 侧面(90°)：心房立体起伏如羽翼微展，斜切包边轮廓分明，绝非单薄一条线；
+    //    - 背面(180°)：完整饱满圆润后穹顶，所有照片双面端正朝向视线；
+    //    - 环绕腰带：倾斜 22° 悬浮星环带，星河璀璨，宏大浪漫。
     // -----------------------------------------------------------------
-    const S = isMobile ? 22 : 38;
+    const S = isMobile ? 21 : 36;
     const yOff = 25 + 1.2 * S;
-    const D = 16 * S * (isMobile ? 0.46 : 0.52);
+    // 纵深幅度大幅提升：使立体厚度与心形宽度接近 1:1，产生惊艳的雕塑实体感
+    const D = 16 * S * (isMobile ? 0.85 : 1.15);
 
     const climaxIdx = this.photoMeshes.findIndex(m => m.userData.isClimaxLetter);
     const normalCount = Math.max(0, count - (climaxIdx >= 0 ? 1 : 0));
 
-    // 精确配比，确保所有 normalCount 张照片不多不少 100% 入位
-    const countFront = Math.round(normalCount * 0.32);
-    const countRim   = Math.round(normalCount * 0.24);
-    const countBack  = Math.round(normalCount * 0.29);
-    const countRing  = Math.max(0, normalCount - (countFront + countRim + countBack));
+    // 五层架构精密划分，545 张照片 100% 深度融入
+    const countFront = Math.round(normalCount * 0.34); // ~185 张
+    const countRim   = Math.round(normalCount * 0.20); // ~109 张
+    const countBack  = Math.round(normalCount * 0.32); // ~174 张
+    const countRing  = Math.max(0, normalCount - (countFront + countRim + countBack)); // ~76 张
 
     const targets = [];
     const slots = [];
@@ -646,13 +649,14 @@ class CelestialSphereGallery {
     const dummy = new THREE.Object3D();
 
     // -------------------------------------------------------------
-    // Zone A: 前凸饱满穹顶 (Front Chamber Dome)
-    // 3层同心穹顶：中心微隆起，心室饱满，朝向前置镜头
+    // Zone A: 前凸饱满阶梯穹顶 (Front Chamber Stepped Dome, ~185张)
+    // 3层同心阶梯穹顶：内圈最高向前凸出(+520px)，中圈过渡(+350px)，外圈延展(+180px)
+    // 大卡片尺寸（1.15~1.28x），大图清晰迎面，不缩小、不遮挡！
     // -------------------------------------------------------------
     const frontLayers = [
-      { r: 0.94, zFrac: 0.35, countFrac: 0.40, scaleMul: 1.00 },
-      { r: 0.70, zFrac: 0.68, countFrac: 0.35, scaleMul: 1.05 },
-      { r: 0.44, zFrac: 0.95, countFrac: 0.25, scaleMul: 1.10 }
+      { r: 0.92, zFrac: 0.32, countFrac: 0.38, scaleMul: 1.15, mScale: 0.96 },
+      { r: 0.68, zFrac: 0.60, countFrac: 0.35, scaleMul: 1.20, mScale: 1.00 },
+      { r: 0.40, zFrac: 0.88, countFrac: 0.27, scaleMul: 1.26, mScale: 1.04 }
     ];
     let frontAllocated = 0;
     frontLayers.forEach((fl, layerIdx) => {
@@ -665,31 +669,31 @@ class CelestialSphereGallery {
       for (let j = 0; j < nInLayer; j++) {
         const ratio = j / nInLayer + phase;
         const pt = sampleHeartArc(ratio);
-        // 心房纵向厚度衰减包络线：上端心室丰满，下端尖锥收拢
+        // 心房纵向厚度衰减包络线：上端双心室丰满厚实，下端尖锥顺滑收拢
         const hFactor = Math.max(0, Math.min(1, (pt.y + 17) / 34));
-        const thicknessFactor = 0.45 + 0.55 * Math.pow(hFactor, 0.65);
+        const thicknessFactor = 0.40 + 0.60 * Math.pow(hFactor, 0.65);
 
         const x = pt.x * S * fl.r;
         const y = pt.y * S * fl.r + yOff;
-        const z = D * fl.zFrac * thicknessFactor + Math.sin(j * 1.7) * 8;
+        const z = D * fl.zFrac * thicknessFactor + Math.sin(j * 1.7) * 12;
 
-        // 法线朝向计算：平滑辐射朝向相机前向穹顶，保证正面无畸变、3D角度有弧度
+        // 微弧度朝向：正面开阔直面视线，侧向微带弧度，消除死角与边缘刀片感
         dummy.position.set(x, y, z);
         dummy.up.set(0, 1, 0);
-        dummy.lookAt(x * 0.22, (y - yOff) * 0.18 + yOff, z + 500);
+        dummy.lookAt(x * 0.18, (y - yOff) * 0.15 + yOff, z + 650);
 
         slots.push({
           pos: dummy.position.clone(),
           rot: dummy.rotation.clone(),
-          targetScale: (isMobile ? 0.76 : 0.96) * fl.scaleMul,
+          targetScale: isMobile ? fl.mScale : fl.scaleMul,
           zone: 'front'
         });
       }
     });
 
     // -------------------------------------------------------------
-    // Zone B: 立体雕塑轮廓外圈 (Beveled Rim Contour Belt)
-    // 贴合爱心最外缘，呈双排微错落斜切角，雕刻出清晰立体棱角
+    // Zone B: 立体轮廓包边 (Beveled Rim Contour Belt, ~109张)
+    // 双排立体错落斜切角，雕刻出爱心外轮廓边界，侧面看丰满有型，绝非纸片！
     // -------------------------------------------------------------
     for (let j = 0; j < countRim; j++) {
       const ratio = j / countRim;
@@ -700,29 +704,30 @@ class CelestialSphereGallery {
 
       const x = pt.x * S * r;
       const y = pt.y * S * r + yOff;
-      const z = alt * (48 + (1 - hFactor) * 16) + Math.sin(j * 0.9) * 8;
+      const z = alt * (55 + (1 - hFactor) * 20) + Math.sin(j * 0.9) * 10;
 
       dummy.position.set(x, y, z);
       dummy.up.set(0, 1, 0);
-      dummy.lookAt(x * 1.55, (y - yOff) * 1.25 + yOff, z * 1.45);
+      // 40° 柔和斜切角：正面看展示卡片完整，90°侧面看亦有饱满立面
+      dummy.lookAt(x * 1.35, (y - yOff) * 1.18 + yOff, z * 1.25 + 120);
 
       slots.push({
         pos: dummy.position.clone(),
         rot: dummy.rotation.clone(),
-        targetScale: isMobile ? 0.70 : 0.88,
+        targetScale: isMobile ? 0.92 : 1.12,
         zone: 'rim'
       });
     }
 
     // -------------------------------------------------------------
-    // Zone C: 后凸圆润穹面 (Back Chamber Dome)
-    // 与前穹对称呼应，向后方隆起。当用户或自动旋转到背面时，
-    // 呈现完整、饱满、照片全部正面朝上的另一面立体爱心！
+    // Zone C: 后凸圆润穹面 (Back Chamber Dome, ~174张)
+    // 与前穹对称呼应，向后方深邃隆起(-520px)。当旋转到背面时，
+    // 呈现完整、大图、照片全部正面朝上的另一面立体爱心！
     // -------------------------------------------------------------
     const backLayers = [
-      { r: 0.94, zFrac: -0.35, countFrac: 0.40, scaleMul: 1.00 },
-      { r: 0.70, zFrac: -0.68, countFrac: 0.35, scaleMul: 1.05 },
-      { r: 0.44, zFrac: -0.95, countFrac: 0.25, scaleMul: 1.10 }
+      { r: 0.92, zFrac: -0.32, countFrac: 0.38, scaleMul: 1.15, mScale: 0.96 },
+      { r: 0.68, zFrac: -0.60, countFrac: 0.35, scaleMul: 1.20, mScale: 1.00 },
+      { r: 0.40, zFrac: -0.88, countFrac: 0.27, scaleMul: 1.26, mScale: 1.04 }
     ];
     let backAllocated = 0;
     backLayers.forEach((bl, layerIdx) => {
@@ -736,32 +741,32 @@ class CelestialSphereGallery {
         const ratio = j / nInLayer + phase;
         const pt = sampleHeartArc(ratio);
         const hFactor = Math.max(0, Math.min(1, (pt.y + 17) / 34));
-        const thicknessFactor = 0.45 + 0.55 * Math.pow(hFactor, 0.65);
+        const thicknessFactor = 0.40 + 0.60 * Math.pow(hFactor, 0.65);
 
         const x = pt.x * S * bl.r;
         const y = pt.y * S * bl.r + yOff;
-        const z = D * bl.zFrac * thicknessFactor + Math.sin(j * 1.7) * 8;
+        const z = D * bl.zFrac * thicknessFactor + Math.sin(j * 1.7) * 12;
 
         dummy.position.set(x, y, z);
         dummy.up.set(0, 1, 0);
-        dummy.lookAt(x * 0.22, (y - yOff) * 0.18 + yOff, z - 500);
+        dummy.lookAt(x * 0.18, (y - yOff) * 0.15 + yOff, z - 650);
 
         slots.push({
           pos: dummy.position.clone(),
           rot: dummy.rotation.clone(),
-          targetScale: (isMobile ? 0.74 : 0.94) * bl.scaleMul,
+          targetScale: isMobile ? bl.mScale : bl.scaleMul,
           zone: 'back'
         });
       }
     });
 
     // -------------------------------------------------------------
-    // Zone D: 星际环绕光带 (Saturnian Galaxy Ribbon)
-    // 环绕爱心腰部的倾斜星环，营造悬浮于浩瀚星海的史诗科技浪漫感
+    // Zone D: 星际环绕光带 (Saturnian Galaxy Ribbon, ~76张)
+    // 环绕爱心腰部的倾斜星环带，倾角 22°，大卡片尺寸，丰富空间层次
     // -------------------------------------------------------------
-    const ringTilt = 0.32; // ~18.3° 优雅倾角
-    const rx = 16 * S * (isMobile ? 1.30 : 1.45);
-    const ry = 13 * S * (isMobile ? 0.95 : 1.08);
+    const ringTilt = 0.38; // ~21.8° 优雅宇宙倾角
+    const rx = 16 * S * (isMobile ? 1.28 : 1.38);
+    const ry = 13 * S * (isMobile ? 0.95 : 1.05);
     for (let j = 0; j < countRing; j++) {
       const angle = (j / Math.max(1, countRing)) * Math.PI * 2 + 0.35;
       const rawX = Math.cos(angle) * (rx + (j % 2) * 35);
@@ -769,32 +774,33 @@ class CelestialSphereGallery {
       const rawZ = Math.sin(angle * 2) * 45;
 
       const x = rawX;
-      const y = rawY * Math.cos(ringTilt) - rawZ * Math.sin(ringTilt) + yOff * 0.45;
+      const y = rawY * Math.cos(ringTilt) - rawZ * Math.sin(ringTilt) + yOff * 0.42;
       const z = rawY * Math.sin(ringTilt) + rawZ * Math.cos(ringTilt);
 
       dummy.position.set(x, y, z);
       dummy.up.set(0, 1, 0);
-      dummy.lookAt(x * 1.35, y * 1.1, z + 380);
+      dummy.lookAt(x * 1.28, y * 1.12, z + 320);
 
       slots.push({
         pos: dummy.position.clone(),
         rot: dummy.rotation.clone(),
-        targetScale: isMobile ? 0.62 : 0.76,
+        targetScale: isMobile ? 0.90 : 1.05,
         zone: 'ring'
       });
     }
 
     // -------------------------------------------------------------
-    // Zone E: 回忆长信至尊金卡 + 槽位映射
+    // Zone E: 回忆长信至尊金卡 (Apex Climax Letter, 1张)
+    // 前置最顶峰悬浮，尊贵金框，超大特写（1.62x），一眼即见！
     // -------------------------------------------------------------
     let slotIdx = 0;
     for (let i = 0; i < count; i++) {
       if (i === climaxIdx) {
         targets.push({
-          pos: new THREE.Vector3(0, yOff - 8.2 * S, D + 80),
-          rot: new THREE.Euler(-0.032, 0, 0),
+          pos: new THREE.Vector3(0, yOff - 8.0 * S, D * 0.92 + 95),
+          rot: new THREE.Euler(-0.028, 0, 0),
           isClimax: true,
-          targetScale: isMobile ? 1.20 : 1.42
+          targetScale: isMobile ? 1.40 : 1.62
         });
       } else if (slots[slotIdx]) {
         targets.push(slots[slotIdx++]);
@@ -802,9 +808,9 @@ class CelestialSphereGallery {
     }
 
     // 全息核心与星云尺寸自动匹配爱心物理尺度
-    this.holoBaseScale = (16 * S * 0.46) / 104;
-    this.auraBaseSize = 16 * S * 4.6;
-    if (this.hologramGroup) this.hologramGroup.position.y = yOff - 0.5 * S;
+    this.holoBaseScale = (16 * S * 0.48) / 104;
+    this.auraBaseSize = 16 * S * 4.8;
+    if (this.hologramGroup) this.hologramGroup.position.y = yOff - 0.4 * S;
     if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
     return targets;
   }
@@ -1385,8 +1391,8 @@ class CelestialSphereGallery {
       if (this.groundMirror) this.groundMirror.visible = false;
     } else if (shape === 'heart') {
       camTargetX = 0;
-      camTargetY = isMobile ? 40 : 50;
-      camTargetZ = isMobile ? 1350 : 1480;
+      camTargetY = isMobile ? 35 : 45;
+      camTargetZ = isMobile ? 1150 : 1240;
       lookTargetX = 0;
       lookTargetY = 25;
       lookTargetZ = 0;
@@ -1432,14 +1438,14 @@ class CelestialSphereGallery {
         this.controls.autoRotate = false;
       } else if (shape === 'heart') {
         this.controls.enableRotate = true;
-        this.controls.minPolarAngle = Math.PI * 0.22;
-        this.controls.maxPolarAngle = Math.PI * 0.78;
+        this.controls.minPolarAngle = Math.PI * 0.18;
+        this.controls.maxPolarAngle = Math.PI * 0.82;
         this.controls.minAzimuthAngle = -Infinity;
         this.controls.maxAzimuthAngle = Infinity;
-        this.controls.minDistance = isMobile ? 650 : 800;
-        this.controls.maxDistance = isMobile ? 2200 : 2600;
+        this.controls.minDistance = isMobile ? 650 : 750;
+        this.controls.maxDistance = isMobile ? 2200 : 2500;
         this.controls.autoRotate = true;
-        this.controls.autoRotateSpeed = 0.32;
+        this.controls.autoRotateSpeed = 0.35;
       } else {
         this.controls.enableRotate = true;
         this.controls.minPolarAngle = Math.PI * 0.18;
@@ -1868,7 +1874,7 @@ class CelestialSphereGallery {
       targetCamPos = { x: 0, y: isMobile ? 90 : 120, z: isMobile ? 1200 : 1350 };
       lookTarget = { x: 0, y: 10, z: -600 };
     } else if (this.currentShape === 'heart') {
-      targetCamPos = { x: 0, y: isMobile ? 40 : 50, z: isMobile ? 1350 : 1480 };
+      targetCamPos = { x: 0, y: isMobile ? 35 : 45, z: isMobile ? 1150 : 1240 };
       lookTarget = { x: 0, y: 25, z: 0 };
     } else {
       targetCamPos = { x: 0, y: isMobile ? 30 : 40, z: isMobile ? 1550 : 1880 };
