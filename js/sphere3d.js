@@ -136,6 +136,8 @@ class CelestialSphereGallery {
     // 6b. Cinematic Rose-Gold Aura Glow & Rising Memory Hearts
     this.createAuraGlow();
     this.createRisingHearts();
+    this.createCosmicRings();
+    this.createMeteorShower();
 
     // 7. Ambient Stardust Galaxy Field & Neural Cosmos
     this.createStardust();
@@ -305,36 +307,265 @@ class CelestialSphereGallery {
   }
 
   // -------------------------------------------------------------
-  // Rising Memory Hearts (浪漫上升的心形光尘)
+  // Rising Memory Hearts (480 颗浪漫升腾的萤火爱心光尘)
   // -------------------------------------------------------------
   createRisingHearts() {
-    const n = 110;
+    const n = 480;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(n * 3);
+    const clrs = new Float32Array(n * 3);
     const seeds = [];
+
+    const cPink = new THREE.Color(0xfda4af);
+    const cGold = new THREE.Color(0xfef08a);
+    const cRose = new THREE.Color(0xf43f5e);
+    const cCyan = new THREE.Color(0x38bdf8);
+
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
-      const r = 180 + Math.random() * 940;
+      const r = 320 + Math.random() * 1480;
       pos[i * 3]     = Math.cos(a) * r;
-      pos[i * 3 + 1] = -700 + Math.random() * 1800;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 1000;
-      seeds.push({ speed: 0.55 + Math.random() * 1.15, sway: Math.random() * Math.PI * 2 });
+      pos[i * 3 + 1] = -1200 + Math.random() * 2500;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 1600;
+
+      const rnd = Math.random();
+      const c = rnd < 0.45 ? cPink : (rnd < 0.72 ? cGold : (rnd < 0.88 ? cRose : cCyan));
+      clrs[i * 3]     = c.r;
+      clrs[i * 3 + 1] = c.g;
+      clrs[i * 3 + 2] = c.b;
+
+      seeds.push({
+        speed: 0.65 + Math.random() * 1.45,
+        sway: Math.random() * Math.PI * 2,
+        swaySpeed: 0.45 + Math.random() * 0.85,
+        r
+      });
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(clrs, 3));
 
     const tex = this.createHeartTexture();
     const mat = new THREE.PointsMaterial({
-      size: 34,
+      size: 32,
       map: tex,
-      color: 0xffa0b8,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
     this.risingHearts = new THREE.Points(geo, mat);
     this.risingHearts.userData.seeds = seeds;
     this.scene.add(this.risingHearts);
+  }
+
+  // -------------------------------------------------------------
+  // Cosmic Love Halo Rings (双层环绕星轨与流光粒子)
+  // -------------------------------------------------------------
+  createCosmicRings() {
+    this.cosmicRingsGroup = new THREE.Group();
+    this.cosmicRingsGroup.position.set(0, 25, 0);
+
+    // 柔光圆点贴图
+    const cvs = document.createElement('canvas');
+    cvs.width = cvs.height = 64;
+    const ctx = cvs.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    g.addColorStop(0.25, 'rgba(255, 210, 230, 0.90)');
+    g.addColorStop(0.60, 'rgba(244, 63, 94, 0.40)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const starTex = new THREE.CanvasTexture(cvs);
+
+    // 1. 主星轨（Major Halo Ring）：1400 颗流光粒子，倾角 24°
+    const n1 = 1400;
+    const geo1 = new THREE.BufferGeometry();
+    const pos1 = new Float32Array(n1 * 3);
+    const clr1 = new Float32Array(n1 * 3);
+    const seeds1 = [];
+
+    const cRose = new THREE.Color(0xf43f5e);
+    const cGold = new THREE.Color(0xfbbf24);
+    const cCyan = new THREE.Color(0x38bdf8);
+    const cWhite = new THREE.Color(0xffffff);
+
+    for (let i = 0; i < n1; i++) {
+      const angle = (i / n1) * Math.PI * 2 + (Math.random() - 0.5) * 0.08;
+      const radius = 1080 + (Math.random() - 0.5) * 220;
+      const yOffset = (Math.random() - 0.5) * 60;
+      pos1[i * 3]     = Math.cos(angle) * radius;
+      pos1[i * 3 + 1] = yOffset;
+      pos1[i * 3 + 2] = Math.sin(angle) * radius;
+
+      const rnd = Math.random();
+      const c = rnd < 0.45 ? cRose : (rnd < 0.75 ? cGold : (rnd < 0.90 ? cCyan : cWhite));
+      clr1[i * 3]     = c.r;
+      clr1[i * 3 + 1] = c.g;
+      clr1[i * 3 + 2] = c.b;
+
+      seeds1.push({
+        angle,
+        radius,
+        speed: (0.003 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : 1.2),
+        yOffset,
+        bobSpeed: 0.8 + Math.random() * 1.5,
+        bobAmp: 8 + Math.random() * 16
+      });
+    }
+
+    geo1.setAttribute('position', new THREE.BufferAttribute(pos1, 3));
+    geo1.setAttribute('color', new THREE.BufferAttribute(clr1, 3));
+
+    const mat1 = new THREE.PointsMaterial({
+      size: 24,
+      map: starTex,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    this.haloPoints1 = new THREE.Points(geo1, mat1);
+    this.haloPoints1.userData.seeds = seeds1;
+    this.haloPoints1.rotation.x = Math.PI * 0.13;
+    this.haloPoints1.rotation.z = -Math.PI * 0.07;
+    this.cosmicRingsGroup.add(this.haloPoints1);
+
+    // 2. 副星轨（Minor Counter-Orbit Ring）：900 颗流光粒子，反向倾角 -18°
+    const n2 = 900;
+    const geo2 = new THREE.BufferGeometry();
+    const pos2 = new Float32Array(n2 * 3);
+    const clr2 = new Float32Array(n2 * 3);
+    const seeds2 = [];
+
+    for (let i = 0; i < n2; i++) {
+      const angle = (i / n2) * Math.PI * 2 + (Math.random() - 0.5) * 0.10;
+      const radius = 920 + (Math.random() - 0.5) * 180;
+      const yOffset = (Math.random() - 0.5) * 45;
+      pos2[i * 3]     = Math.cos(angle) * radius;
+      pos2[i * 3 + 1] = yOffset;
+      pos2[i * 3 + 2] = Math.sin(angle) * radius;
+
+      const rnd = Math.random();
+      const c = rnd < 0.50 ? cCyan : (rnd < 0.80 ? cGold : cRose);
+      clr2[i * 3]     = c.r;
+      clr2[i * 3 + 1] = c.g;
+      clr2[i * 3 + 2] = c.b;
+
+      seeds2.push({
+        angle,
+        radius,
+        speed: -(0.0025 + Math.random() * 0.0035),
+        yOffset,
+        bobSpeed: 0.6 + Math.random() * 1.2,
+        bobAmp: 6 + Math.random() * 12
+      });
+    }
+
+    geo2.setAttribute('position', new THREE.BufferAttribute(pos2, 3));
+    geo2.setAttribute('color', new THREE.BufferAttribute(clr2, 3));
+
+    const mat2 = new THREE.PointsMaterial({
+      size: 20,
+      map: starTex,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.80,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    this.haloPoints2 = new THREE.Points(geo2, mat2);
+    this.haloPoints2.userData.seeds = seeds2;
+    this.haloPoints2.rotation.x = -Math.PI * 0.11;
+    this.haloPoints2.rotation.z = Math.PI * 0.09;
+    this.cosmicRingsGroup.add(this.haloPoints2);
+
+    // 3. 柔光立体光环线 (Thin Torus Core Rings)
+    const ringGeo1 = new THREE.TorusGeometry(1080, 1.8, 8, 128);
+    const ringMat1 = new THREE.MeshBasicMaterial({
+      color: 0xf43f5e,
+      transparent: true,
+      opacity: 0.28
+    });
+    const ringMesh1 = new THREE.Mesh(ringGeo1, ringMat1);
+    ringMesh1.rotation.x = Math.PI * 0.13;
+    ringMesh1.rotation.z = -Math.PI * 0.07;
+    this.cosmicRingsGroup.add(ringMesh1);
+
+    const ringGeo2 = new THREE.TorusGeometry(920, 1.4, 8, 128);
+    const ringMat2 = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.22
+    });
+    const ringMesh2 = new THREE.Mesh(ringGeo2, ringMat2);
+    ringMesh2.rotation.x = -Math.PI * 0.11;
+    ringMesh2.rotation.z = Math.PI * 0.09;
+    this.cosmicRingsGroup.add(ringMesh2);
+
+    this.scene.add(this.cosmicRingsGroup);
+  }
+
+  // -------------------------------------------------------------
+  // Cosmic Meteor Shower (漫天划过的许愿流星雨)
+  // -------------------------------------------------------------
+  createMeteorShower() {
+    this.meteorGroup = new THREE.Group();
+    const count = 10;
+    this.meteors = [];
+
+    for (let i = 0; i < count; i++) {
+      const trailLength = 280;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array([
+        0, 0, 0,
+        -trailLength * 0.65, trailLength * 0.55, trailLength * 0.35
+      ]);
+      const clrs = new Float32Array([
+        1.0, 1.0, 1.0,   // 头部纯白高亮
+        0.96, 0.40, 0.65  // 尾部渐变粉紫光晕
+      ]);
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(clrs, 3));
+
+      const mat = new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0,
+        linewidth: 2,
+        blending: THREE.AdditiveBlending
+      });
+
+      const line = new THREE.Line(geo, mat);
+      line.visible = false;
+
+      const resetMeteor = () => {
+        // 随机在爱心后方和上方深空生成
+        const spawnX = 600 + Math.random() * 1800;
+        const spawnY = 600 + Math.random() * 1400;
+        const spawnZ = -400 - Math.random() * 1400;
+        line.position.set(spawnX, spawnY, spawnZ);
+        line.userData = {
+          vx: -(18 + Math.random() * 18),
+          vy: -(15 + Math.random() * 15),
+          vz: -(4 + Math.random() * 8),
+          delay: Math.random() * 3.5 + i * 0.4,
+          life: 0,
+          maxLife: 55 + Math.random() * 30,
+          active: false
+        };
+      };
+
+      resetMeteor();
+      this.meteors.push({ line, reset: resetMeteor });
+      this.meteorGroup.add(line);
+    }
+
+    this.scene.add(this.meteorGroup);
   }
 
   // -------------------------------------------------------------
@@ -672,10 +903,11 @@ class CelestialSphereGallery {
       });
     }
 
-    // 全息核心与玫瑰金星云尺寸动态校正
+    // 全息核心与周边星轨尺寸动态校正
     this.holoBaseScale = (16 * S * 0.40) / 104;
-    this.auraBaseSize = 16 * S * 4.2;
+    this.auraBaseSize = 16 * S * 4.4;
     if (this.hologramGroup) this.hologramGroup.position.y = yOff - 0.4 * S;
+    if (this.cosmicRingsGroup) this.cosmicRingsGroup.position.y = yOff - 0.2 * S;
     if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
     return targets;
   }
@@ -1332,6 +1564,8 @@ class CelestialSphereGallery {
     if (this.hologramGroup) this.hologramGroup.visible = coreOn;
     if (this.auraSprite) this.auraSprite.visible = (shape === 'heart' || shape === 'wave');
     if (this.risingHearts) this.risingHearts.visible = (shape === 'heart' || shape === 'wave');
+    if (this.cosmicRingsGroup) this.cosmicRingsGroup.visible = (shape === 'heart');
+    if (this.meteorGroup) this.meteorGroup.visible = (shape === 'heart');
     if (this.waveNet) this.waveNet.visible = (shape === 'wave');
 
     const instantMesh = instant || shape === 'wave' || typeof gsap === 'undefined';
@@ -1817,18 +2051,79 @@ class CelestialSphereGallery {
       this.auraSprite.material.opacity = (coreMode ? 0.72 : 0.34) + Math.sin(elapsed * 1.25) * 0.10 + bass * 0.16;
     }
 
+    // 2b. 漫天升腾的萤火爱心光尘 (480 颗微光粒子)
     if (this.risingHearts && this.risingHearts.visible) {
       const attr = this.risingHearts.geometry.attributes.position;
       const seeds = this.risingHearts.userData.seeds;
       for (let i = 0; i < seeds.length; i++) {
-        let y = attr.getY(i) + seeds[i].speed * 1.6;
-        if (y > 1150) { y = -800; }
+        let y = attr.getY(i) + seeds[i].speed * 1.8;
+        if (y > 1400) { y = -1250; }
         attr.setY(i, y);
-        attr.setX(i, attr.getX(i) + Math.sin(elapsed * 0.55 + seeds[i].sway) * 0.55);
+        attr.setX(i, attr.getX(i) + Math.sin(elapsed * seeds[i].swaySpeed + seeds[i].sway) * 0.65);
       }
       attr.needsUpdate = true;
-      this.risingHearts.material.opacity = (this.currentShape === 'heart' ? 0.55 : 0.34)
-        + Math.sin(elapsed * 1.6) * 0.14 + bass * 0.2;
+      this.risingHearts.material.opacity = (this.currentShape === 'heart' ? 0.78 : 0.35)
+        + Math.sin(elapsed * 1.5) * 0.12 + bass * 0.18;
+    }
+
+    // 2c. 环绕爱心的双层流星光环带 (Cosmic Love Halo Rings)
+    if (this.cosmicRingsGroup && this.cosmicRingsGroup.visible) {
+      if (this.haloPoints1) {
+        const pa1 = this.haloPoints1.geometry.attributes.position;
+        const s1 = this.haloPoints1.userData.seeds;
+        for (let i = 0; i < s1.length; i++) {
+          s1[i].angle += s1[i].speed * (1 + bass * 0.45);
+          const x = Math.cos(s1[i].angle) * s1[i].radius;
+          const z = Math.sin(s1[i].angle) * s1[i].radius;
+          const y = s1[i].yOffset + Math.sin(elapsed * s1[i].bobSpeed + s1[i].angle) * s1[i].bobAmp;
+          pa1.setXYZ(i, x, y, z);
+        }
+        pa1.needsUpdate = true;
+      }
+      if (this.haloPoints2) {
+        const pa2 = this.haloPoints2.geometry.attributes.position;
+        const s2 = this.haloPoints2.userData.seeds;
+        for (let i = 0; i < s2.length; i++) {
+          s2[i].angle += s2[i].speed * (1 + bass * 0.45);
+          const x = Math.cos(s2[i].angle) * s2[i].radius;
+          const z = Math.sin(s2[i].angle) * s2[i].radius;
+          const y = s2[i].yOffset + Math.sin(elapsed * s2[i].bobSpeed + s2[i].angle) * s2[i].bobAmp;
+          pa2.setXYZ(i, x, y, z);
+        }
+        pa2.needsUpdate = true;
+      }
+      this.cosmicRingsGroup.rotation.y += 0.0012;
+    }
+
+    // 2d. 划破深空的许愿流星雨 (Cosmic Meteor Shower)
+    if (this.meteorGroup && this.meteorGroup.visible && this.meteors) {
+      this.meteors.forEach(m => {
+        const line = m.line;
+        const ud = line.userData;
+        if (ud.delay > 0) {
+          ud.delay -= 0.016;
+          return;
+        }
+        if (!ud.active) {
+          ud.active = true;
+          line.visible = true;
+        }
+        line.position.x += ud.vx;
+        line.position.y += ud.vy;
+        line.position.z += ud.vz;
+        ud.life++;
+
+        const lifeFrac = ud.life / ud.maxLife;
+        if (lifeFrac < 0.25) {
+          line.material.opacity = lifeFrac / 0.25;
+        } else {
+          line.material.opacity = Math.max(0, 1.0 - (lifeFrac - 0.25) / 0.75);
+        }
+
+        if (ud.life >= ud.maxLife || line.position.y < -950) {
+          m.reset();
+        }
+      });
     }
 
     // 3. Autonomous Procedural Kinetic Motion
