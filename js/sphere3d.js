@@ -158,49 +158,91 @@ class CelestialSphereGallery {
     this.hologramGroup.position.set(0, 25, 0);
     this.holoBaseScale = 3.4; // 由 layout 依据心形尺度动态校正
 
-    // Parametric 3D Wireframe Heart Core
-    const heartPoints = [];
-    const segments = 220;
-    for (let i = 0; i <= segments; i++) {
-      const t = (i / segments) * Math.PI * 2;
-      const x = 16 * Math.pow(Math.sin(t), 3) * 6.5;
-      const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.5;
-      const z = Math.sin(t * 3) * 18;
-      heartPoints.push(new THREE.Vector3(x, y, z));
-    }
-
-    const heartGeo = new THREE.BufferGeometry().setFromPoints(heartPoints);
-    const heartMat = new THREE.LineBasicMaterial({
+    // 1. 3D 多重切面全息宝石心形骨架 (Volumetric 3D Faceted Wireframe Gem Heart)
+    const cageGroup = new THREE.Group();
+    const heartSlices = [-36, -20, 0, 20, 36];
+    const wireMat = new THREE.LineBasicMaterial({
       color: 0xf43f5e,
       linewidth: 2,
       transparent: true,
       opacity: 0.85
     });
-    this.hologramHeart = new THREE.LineLoop(heartGeo, heartMat);
+
+    heartSlices.forEach(zLevel => {
+      const pts = [];
+      const segs = 140;
+      const zNorm = Math.abs(zLevel) / 48;
+      const radFactor = Math.sqrt(Math.max(0.12, 1 - zNorm * zNorm));
+      for (let i = 0; i <= segs; i++) {
+        const t = (i / segs) * Math.PI * 2;
+        const x = 16 * Math.pow(Math.sin(t), 3) * 6.5 * radFactor;
+        const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.5 * radFactor;
+        pts.push(new THREE.Vector3(x, y, zLevel));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const loop = new THREE.LineLoop(geo, wireMat);
+      cageGroup.add(loop);
+    });
+
+    // 经向立体棱线：将顶部凹陷至底部尖端串联为立体晶体
+    const ribAngles = [0, Math.PI * 0.25, Math.PI * 0.5, Math.PI * 0.75, Math.PI, Math.PI * 1.25, Math.PI * 1.5, Math.PI * 1.75];
+    const ribMat = new THREE.LineBasicMaterial({
+      color: 0xfb7185,
+      transparent: true,
+      opacity: 0.55
+    });
+    ribAngles.forEach(phi => {
+      const pts = [];
+      const segs = 60;
+      for (let i = 0; i <= segs; i++) {
+        const t = (i / segs) * Math.PI * 2;
+        const z = Math.cos(phi) * 36 * Math.sin(t / 2);
+        const radFactor = 0.88 + 0.12 * Math.abs(Math.sin(phi));
+        const x = 16 * Math.pow(Math.sin(t), 3) * 6.5 * radFactor;
+        const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.5;
+        pts.push(new THREE.Vector3(x, y, z));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      cageGroup.add(new THREE.Line(geo, ribMat));
+    });
+
+    this.hologramHeart = cageGroup;
     this.hologramGroup.add(this.hologramHeart);
 
-    // Inner glowing crystal heart point cloud (denser volumetric core)
+    // 2. 内部璀璨三维发光晶尘云 (800 Additive Crystal Stardust Points)
     const innerPoints = [];
-    for (let i = 0; i < 620; i++) {
+    const innerColors = [];
+    const colorA = new THREE.Color(0xf43f5e);
+    const colorB = new THREE.Color(0xfda4af);
+    const colorC = new THREE.Color(0x38bdf8);
+
+    for (let i = 0; i < 800; i++) {
       const t = Math.random() * Math.PI * 2;
-      const r = Math.pow(Math.random(), 0.55);
+      const r = Math.pow(Math.random(), 0.52);
+      const radFactor = Math.sqrt(Math.max(0.06, 1 - r * r));
       const x = 16 * Math.pow(Math.sin(t), 3) * 6.0 * r;
       const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * 6.0 * r;
-      const z = (Math.random() - 0.5) * 46 * Math.sqrt(Math.max(0, 1 - r * r));
+      const z = (Math.random() - 0.5) * 56 * radFactor;
       innerPoints.push(new THREE.Vector3(x, y, z));
+
+      const rnd = Math.random();
+      const clr = rnd < 0.65 ? colorA : (rnd < 0.88 ? colorB : colorC);
+      innerColors.push(clr.r, clr.g, clr.b);
     }
     const innerGeo = new THREE.BufferGeometry().setFromPoints(innerPoints);
+    innerGeo.setAttribute('color', new THREE.Float32BufferAttribute(innerColors, 3));
     const innerMat = new THREE.PointsMaterial({
-      color: 0xfda4af,
-      size: 5,
+      size: 5.5,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.75,
-      blending: THREE.AdditiveBlending
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
     const innerCloud = new THREE.Points(innerGeo, innerMat);
     this.hologramGroup.add(innerCloud);
 
-    // Gyroscope Planetary Orbit Rings
+    // 3. Gyroscope Planetary Orbit Rings
     const ring1Geo = new THREE.TorusGeometry(88, 1.2, 8, 96);
     const ring1Mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.5 });
     this.gyroRing1 = new THREE.Mesh(ring1Geo, ring1Mat);
@@ -213,7 +255,7 @@ class CelestialSphereGallery {
     this.gyroRing2.rotation.y = Math.PI / 4;
     this.hologramGroup.add(this.gyroRing2);
 
-    // Audio Ripple Soundwave Rings
+    // 4. Audio Ripple Soundwave Rings
     for (let i = 0; i < 3; i++) {
       const waveGeo = new THREE.RingGeometry(30 + i * 25, 32 + i * 25, 48);
       const waveMat = new THREE.MeshBasicMaterial({
@@ -534,144 +576,235 @@ class CelestialSphereGallery {
   // 「时光波浪」照片海浪墙网格（自适应窗口尺寸，保证 553 张全部在画面内）
   // -------------------------------------------------------------
   calculateHeartPhotoTargets(count, isMobile) {
-    // 弧长均匀铺卡 + 多层椭圆纵深：爱心不是薄片，而是一座饱满的照片雕塑。
-    const S = isMobile ? 22 : 40;
-    const D = 16 * S * (isMobile ? 0.54 : 0.58);
-    const yOff = 25 + 2.5 * S;
+    // -----------------------------------------------------------------
+    // 璀璨双曲面 3D 饱满立体雕塑爱心 (Dual-Camber Volumetric Sculptural 3D Heart)
+    // 545 张珍贵回忆全数融入，构筑拥有真正三维厚度与圆润穹顶的照片雕塑：
+    // Zone A: 前凸饱满穹顶 (Front Chamber Shell, ~174张, Z > +70, 大图清晰迎面)
+    // Zone B: 立体轮廓包边 (Beveled Rim Contour, ~130张, 锐利外轮廓切面)
+    // Zone C: 后凸圆润穹面 (Back Chamber Shell, ~158张, Z < -70, 360°旋转饱满无死角)
+    // Zone D: 星际环绕光带 (Saturnian Galaxy Ribbon, ~82张, 倾角22°如星环守护)
+    // Zone E: 回忆长信至尊金卡 (Climax Letter, 正中心前置尊贵金框, 1.4x 悬浮特写)
+    // -----------------------------------------------------------------
+    const S = isMobile ? 22 : 38;
+    const yOff = 25 + 1.2 * S;
+    const D = 16 * S * (isMobile ? 0.46 : 0.52);
+
     const climaxIdx = this.photoMeshes.findIndex(m => m.userData.isClimaxLetter);
     const normalCount = Math.max(0, count - (climaxIdx >= 0 ? 1 : 0));
-    const heartCount = Math.min(normalCount, isMobile ? 150 : 340);
-    const orbitCount = Math.max(0, normalCount - heartCount);
-    const layers = isMobile ? 5 : 7;
-    const bands = isMobile ? [1.0, 0.62] : [1.0, 0.68];
+
+    // 精确配比，确保所有 normalCount 张照片不多不少 100% 入位
+    const countFront = Math.round(normalCount * 0.32);
+    const countRim   = Math.round(normalCount * 0.24);
+    const countBack  = Math.round(normalCount * 0.29);
+    const countRing  = Math.max(0, normalCount - (countFront + countRim + countBack));
+
     const targets = [];
     const slots = [];
 
+    // 高精度弧长积分表：保证照片沿心形轮廓线均匀分布，杜绝顶部凹陷或底部尖端挤压
     const curve = [];
     const cumulative = [0];
     let perimeter = 0;
     const segments = 720;
     for (let j = 0; j <= segments; j++) {
       const t = (j / segments) * Math.PI * 2;
-      const point = {
-        x: 16 * Math.pow(Math.sin(t), 3),
-        y: 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)
-      };
+      const sinT = Math.sin(t);
+      const cosT = Math.cos(t);
+      const x = 16 * Math.pow(sinT, 3);
+      const y = 13 * cosT - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      const pt = { x, y, t };
       if (j > 0) {
         const prev = curve[j - 1];
-        perimeter += Math.hypot(point.x - prev.x, point.y - prev.y);
+        perimeter += Math.hypot(pt.x - prev.x, pt.y - prev.y);
         cumulative.push(perimeter);
       }
-      curve.push(point);
+      curve.push(pt);
     }
 
-    const pointAtRatio = (ratio, scale) => {
+    const sampleHeartArc = (ratio) => {
       const wrapped = ((ratio % 1) + 1) % 1;
-      const distance = wrapped * perimeter;
-      let lo = 0;
-      let hi = cumulative.length - 1;
+      const dist = wrapped * perimeter;
+      let lo = 0, hi = cumulative.length - 1;
       while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (cumulative[mid] < distance) lo = mid + 1;
+        if (cumulative[mid] < dist) lo = mid + 1;
         else hi = mid;
       }
       const next = Math.max(1, lo);
       const prev = next - 1;
       const span = Math.max(0.0001, cumulative[next] - cumulative[prev]);
-      const mix = (distance - cumulative[prev]) / span;
+      const mix = (dist - cumulative[prev]) / span;
+      const pPrev = curve[prev];
+      const pNext = curve[next];
       return {
-        x: (curve[prev].x + (curve[next].x - curve[prev].x) * mix) * scale,
-        y: (curve[prev].y + (curve[next].y - curve[prev].y) * mix) * scale + yOff
+        x: pPrev.x + (pNext.x - pPrev.x) * mix,
+        y: pPrev.y + (pNext.y - pPrev.y) * mix,
+        t: pPrev.t + (pNext.t - pPrev.t) * mix
       };
     };
 
-    const rings = [];
-    let weightSum = 0;
-    for (let layer = 0; layer < layers; layer++) {
-      const phi = Math.PI * (0.18 + 0.64 * (layers > 1 ? layer / (layers - 1) : 0.5));
-      const shell = Math.sin(phi);
-      for (const band of bands) {
-        const weight = shell * band;
-        rings.push({ shell, band, z: D * Math.cos(phi) * (0.58 + 0.42 * band), weight });
-        weightSum += weight;
-      }
-    }
-    const ringCounts = rings.map(r => Math.max(4, Math.round(heartCount * r.weight / Math.max(0.001, weightSum))));
-    let drift = heartCount - ringCounts.reduce((sum, n) => sum + n, 0);
-    let guard = 0;
-    while (drift !== 0 && guard++ < 4000) {
-      const idx = guard % ringCounts.length;
-      const step = drift > 0 ? 1 : -1;
-      if (ringCounts[idx] + step >= 4) {
-        ringCounts[idx] += step;
-        drift -= step;
-      }
-    }
+    const dummy = new THREE.Object3D();
 
-    rings.forEach((ring, ringIdx) => {
-      const amount = ringCounts[ringIdx];
-      const scale = S * ring.shell * ring.band;
-      const phase = ringIdx * 0.61803398875;
-      for (let j = 0; j < amount; j++) {
-        const ratio = j / amount + phase;
-        const pt = pointAtRatio(ratio, scale);
-        const radial = Math.hypot(pt.x, ring.z) || 1;
+    // -------------------------------------------------------------
+    // Zone A: 前凸饱满穹顶 (Front Chamber Dome)
+    // 3层同心穹顶：中心微隆起，心室饱满，朝向前置镜头
+    // -------------------------------------------------------------
+    const frontLayers = [
+      { r: 0.94, zFrac: 0.35, countFrac: 0.40, scaleMul: 1.00 },
+      { r: 0.70, zFrac: 0.68, countFrac: 0.35, scaleMul: 1.05 },
+      { r: 0.44, zFrac: 0.95, countFrac: 0.25, scaleMul: 1.10 }
+    ];
+    let frontAllocated = 0;
+    frontLayers.forEach((fl, layerIdx) => {
+      const nInLayer = (layerIdx === frontLayers.length - 1)
+        ? (countFront - frontAllocated)
+        : Math.round(countFront * fl.countFrac);
+      frontAllocated += nInLayer;
+
+      const phase = layerIdx * 0.382;
+      for (let j = 0; j < nInLayer; j++) {
+        const ratio = j / nInLayer + phase;
+        const pt = sampleHeartArc(ratio);
+        // 心房纵向厚度衰减包络线：上端心室丰满，下端尖锥收拢
+        const hFactor = Math.max(0, Math.min(1, (pt.y + 17) / 34));
+        const thicknessFactor = 0.45 + 0.55 * Math.pow(hFactor, 0.65);
+
+        const x = pt.x * S * fl.r;
+        const y = pt.y * S * fl.r + yOff;
+        const z = D * fl.zFrac * thicknessFactor + Math.sin(j * 1.7) * 8;
+
+        // 法线朝向计算：平滑辐射朝向相机前向穹顶，保证正面无畸变、3D角度有弧度
+        dummy.position.set(x, y, z);
+        dummy.up.set(0, 1, 0);
+        dummy.lookAt(x * 0.22, (y - yOff) * 0.18 + yOff, z + 500);
+
         slots.push({
-          pos: new THREE.Vector3(pt.x, pt.y, ring.z),
-          rot: new THREE.Euler(
-            -Math.atan2(pt.y - yOff, radial) * 0.13,
-            Math.atan2(pt.x, ring.z) * 0.46,
-            Math.sin(ratio * Math.PI * 2) * 0.018
-          ),
-          targetScale: (isMobile ? 0.72 : 0.93) * (0.90 + 0.10 * ring.band) * (0.94 + 0.06 * ring.shell)
+          pos: dummy.position.clone(),
+          rot: dummy.rotation.clone(),
+          targetScale: (isMobile ? 0.76 : 0.96) * fl.scaleMul,
+          zone: 'front'
         });
       }
     });
 
-    // 其余照片化作三层环绕爱心的「记忆光环」：位于爱心后方的椭圆星环，
-    // 横向舒展、纵向收束以贴合宽屏视口，如同守护我们的星系光环。
-    const haloTilt = 0.20;
-    const haloRX = isMobile ? [430, 520, 620] : [1050, 1280, 1520];
-    const haloRY = isMobile ? [400, 470, 545] : [820, 950, 1080];
-    const haloZ  = isMobile ? [-260, -360, -470] : [-320, -460, -620];
-    for (let j = 0; j < orbitCount; j++) {
-      const lane = j % 3;
-      const slot = Math.floor(j / 3);
-      const perLane = Math.max(1, Math.ceil(orbitCount / 3));
-      const angle = (slot / perLane) * Math.PI * 2 + lane * 0.7;
-      const x = Math.cos(angle) * haloRX[lane];
-      const yFlat = Math.sin(angle) * haloRY[lane];
-      const y = yFlat * Math.cos(haloTilt) + yOff * 0.28;
-      const z = haloZ[lane] + yFlat * Math.sin(haloTilt);
+    // -------------------------------------------------------------
+    // Zone B: 立体雕塑轮廓外圈 (Beveled Rim Contour Belt)
+    // 贴合爱心最外缘，呈双排微错落斜切角，雕刻出清晰立体棱角
+    // -------------------------------------------------------------
+    for (let j = 0; j < countRim; j++) {
+      const ratio = j / countRim;
+      const pt = sampleHeartArc(ratio);
+      const hFactor = Math.max(0, Math.min(1, (pt.y + 17) / 34));
+      const alt = (j % 2 === 0) ? 1 : -1;
+      const r = 1.05 + (j % 2) * 0.035;
+
+      const x = pt.x * S * r;
+      const y = pt.y * S * r + yOff;
+      const z = alt * (48 + (1 - hFactor) * 16) + Math.sin(j * 0.9) * 8;
+
+      dummy.position.set(x, y, z);
+      dummy.up.set(0, 1, 0);
+      dummy.lookAt(x * 1.55, (y - yOff) * 1.25 + yOff, z * 1.45);
+
       slots.push({
-        pos: new THREE.Vector3(x, y, z),
-        rot: new THREE.Euler(
-          -Math.sin(angle) * haloTilt * 0.75,
-          Math.cos(angle) * 0.22,
-          Math.sin(angle * 2) * 0.05
-        ),
-        targetScale: (isMobile ? 0.22 : 0.27) - lane * 0.022
+        pos: dummy.position.clone(),
+        rot: dummy.rotation.clone(),
+        targetScale: isMobile ? 0.70 : 0.88,
+        zone: 'rim'
       });
     }
 
+    // -------------------------------------------------------------
+    // Zone C: 后凸圆润穹面 (Back Chamber Dome)
+    // 与前穹对称呼应，向后方隆起。当用户或自动旋转到背面时，
+    // 呈现完整、饱满、照片全部正面朝上的另一面立体爱心！
+    // -------------------------------------------------------------
+    const backLayers = [
+      { r: 0.94, zFrac: -0.35, countFrac: 0.40, scaleMul: 1.00 },
+      { r: 0.70, zFrac: -0.68, countFrac: 0.35, scaleMul: 1.05 },
+      { r: 0.44, zFrac: -0.95, countFrac: 0.25, scaleMul: 1.10 }
+    ];
+    let backAllocated = 0;
+    backLayers.forEach((bl, layerIdx) => {
+      const nInLayer = (layerIdx === backLayers.length - 1)
+        ? (countBack - backAllocated)
+        : Math.round(countBack * bl.countFrac);
+      backAllocated += nInLayer;
+
+      const phase = layerIdx * 0.418;
+      for (let j = 0; j < nInLayer; j++) {
+        const ratio = j / nInLayer + phase;
+        const pt = sampleHeartArc(ratio);
+        const hFactor = Math.max(0, Math.min(1, (pt.y + 17) / 34));
+        const thicknessFactor = 0.45 + 0.55 * Math.pow(hFactor, 0.65);
+
+        const x = pt.x * S * bl.r;
+        const y = pt.y * S * bl.r + yOff;
+        const z = D * bl.zFrac * thicknessFactor + Math.sin(j * 1.7) * 8;
+
+        dummy.position.set(x, y, z);
+        dummy.up.set(0, 1, 0);
+        dummy.lookAt(x * 0.22, (y - yOff) * 0.18 + yOff, z - 500);
+
+        slots.push({
+          pos: dummy.position.clone(),
+          rot: dummy.rotation.clone(),
+          targetScale: (isMobile ? 0.74 : 0.94) * bl.scaleMul,
+          zone: 'back'
+        });
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Zone D: 星际环绕光带 (Saturnian Galaxy Ribbon)
+    // 环绕爱心腰部的倾斜星环，营造悬浮于浩瀚星海的史诗科技浪漫感
+    // -------------------------------------------------------------
+    const ringTilt = 0.32; // ~18.3° 优雅倾角
+    const rx = 16 * S * (isMobile ? 1.30 : 1.45);
+    const ry = 13 * S * (isMobile ? 0.95 : 1.08);
+    for (let j = 0; j < countRing; j++) {
+      const angle = (j / Math.max(1, countRing)) * Math.PI * 2 + 0.35;
+      const rawX = Math.cos(angle) * (rx + (j % 2) * 35);
+      const rawY = Math.sin(angle) * (ry + (j % 2) * 25);
+      const rawZ = Math.sin(angle * 2) * 45;
+
+      const x = rawX;
+      const y = rawY * Math.cos(ringTilt) - rawZ * Math.sin(ringTilt) + yOff * 0.45;
+      const z = rawY * Math.sin(ringTilt) + rawZ * Math.cos(ringTilt);
+
+      dummy.position.set(x, y, z);
+      dummy.up.set(0, 1, 0);
+      dummy.lookAt(x * 1.35, y * 1.1, z + 380);
+
+      slots.push({
+        pos: dummy.position.clone(),
+        rot: dummy.rotation.clone(),
+        targetScale: isMobile ? 0.62 : 0.76,
+        zone: 'ring'
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Zone E: 回忆长信至尊金卡 + 槽位映射
+    // -------------------------------------------------------------
     let slotIdx = 0;
     for (let i = 0; i < count; i++) {
       if (i === climaxIdx) {
         targets.push({
-          pos: new THREE.Vector3(0, yOff - 15.7 * S, D + 170),
-          rot: new THREE.Euler(-0.035, 0, 0),
+          pos: new THREE.Vector3(0, yOff - 8.2 * S, D + 80),
+          rot: new THREE.Euler(-0.032, 0, 0),
           isClimax: true,
-          targetScale: isMobile ? 1.10 : 1.28
+          targetScale: isMobile ? 1.20 : 1.42
         });
       } else if (slots[slotIdx]) {
         targets.push(slots[slotIdx++]);
       }
     }
 
-    this.holoBaseScale = (16 * S * 0.40) / 104;
-    // 更宽柔的玫瑰金光晕包裹整颗心，营造「悬浮于宇宙」的大气氛围
-    this.auraBaseSize = 16 * S * 5.2;
-    if (this.hologramGroup) this.hologramGroup.position.y = yOff - 1.4 * S;
+    // 全息核心与星云尺寸自动匹配爱心物理尺度
+    this.holoBaseScale = (16 * S * 0.46) / 104;
+    this.auraBaseSize = 16 * S * 4.6;
+    if (this.hologramGroup) this.hologramGroup.position.y = yOff - 0.5 * S;
     if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
     return targets;
   }
@@ -1299,13 +1432,14 @@ class CelestialSphereGallery {
         this.controls.autoRotate = false;
       } else if (shape === 'heart') {
         this.controls.enableRotate = true;
-        this.controls.minPolarAngle = Math.PI * 0.32;
-        this.controls.maxPolarAngle = Math.PI * 0.68;
-        this.controls.minAzimuthAngle = -Math.PI * 0.185;
-        this.controls.maxAzimuthAngle = Math.PI * 0.185;
+        this.controls.minPolarAngle = Math.PI * 0.22;
+        this.controls.maxPolarAngle = Math.PI * 0.78;
+        this.controls.minAzimuthAngle = -Infinity;
+        this.controls.maxAzimuthAngle = Infinity;
+        this.controls.minDistance = isMobile ? 650 : 800;
+        this.controls.maxDistance = isMobile ? 2200 : 2600;
         this.controls.autoRotate = true;
-        this.controls.autoRotateSpeed = 0.28;
-        this.heartOrbitDirection = 1;
+        this.controls.autoRotateSpeed = 0.32;
       } else {
         this.controls.enableRotate = true;
         this.controls.minPolarAngle = Math.PI * 0.18;
@@ -1372,7 +1506,22 @@ class CelestialSphereGallery {
         mesh.rotation.copy(target.rot);
         mesh.scale.set(targetScale, targetScale, targetScale);
       } else {
-        const staggerDelay = (index % 40) * 0.02;
+        const isHeart = (shape === 'heart');
+        const cy = this.hologramGroup ? this.hologramGroup.position.y : 25;
+        let staggerDelay = 0;
+        if (isHeart) {
+          const dx = target.pos.x;
+          const dy = target.pos.y - cy;
+          const dz = target.pos.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          const maxDist = isMobile ? 850 : 1350;
+          const normDist = Math.min(1, Math.max(0, dist / maxDist));
+          // 宛如花瓣绽放：从中心光核向外层层荡漾铺开
+          staggerDelay = (target.isClimax ? 1.05 : normDist * 0.85) + ((index % 16) / 16) * 0.12;
+        } else {
+          staggerDelay = (index % 40) * 0.02;
+        }
+
         mesh.userData.isAnimating = true;
 
         gsap.killTweensOf(mesh.position);
@@ -1383,15 +1532,15 @@ class CelestialSphereGallery {
           x: targetScale,
           y: targetScale,
           z: targetScale,
-          duration: 0.75,
-          ease: 'back.out(2.4)',
+          duration: 0.85,
+          ease: 'back.out(2.2)',
           delay: staggerDelay
         });
         gsap.to(mesh.position, {
           x: target.pos.x,
           y: target.pos.y,
           z: target.pos.z,
-          duration: 0.85,
+          duration: 0.95,
           ease: 'power3.out',
           delay: staggerDelay,
           onComplete: () => {
@@ -1402,7 +1551,7 @@ class CelestialSphereGallery {
           x: target.rot.x,
           y: target.rot.y,
           z: target.rot.z,
-          duration: 0.85,
+          duration: 0.95,
           ease: 'power3.out',
           delay: staggerDelay
         });
@@ -1415,150 +1564,8 @@ class CelestialSphereGallery {
     const count = this.photoMeshes.length;
     const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
 
-    if (shape === 'heart') return this.calculateHeartPhotoTargets(count, isMobile);
-
     if (shape === 'heart') {
-      // 5 Distinct Depth Architectural Layers totaling ALL 545 photos:
-      // Front Shell (14%) + Rim Contour (18%) + Back Shell (14%) + Inner Crystal (26%) + Orbit Galaxy Rings (28%) + Apex Climax Card
-      const isM = isMobile;
-      const S = isM ? 22 : 40;
-      const yOff = 25 + 2.5 * S;
-
-      const climaxIdx = this.photoMeshes.findIndex(m => m.userData.isClimaxLetter);
-      const normalCount = count - (climaxIdx >= 0 ? 1 : 0);
-
-      const countL1 = Math.max(10, Math.round(normalCount * 0.14));
-      const countL2 = Math.max(12, Math.round(normalCount * 0.18));
-      const countL3 = Math.max(10, Math.round(normalCount * 0.14));
-      const countL4 = Math.max(15, Math.round(normalCount * 0.26));
-      const countL5 = Math.max(0, normalCount - (countL1 + countL2 + countL3 + countL4));
-
-      const heartSlots = [];
-
-      const heartPoint = (t, scale) => {
-        const x = 16 * Math.pow(Math.sin(t), 3) * scale;
-        const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * scale + yOff;
-        return { x, y };
-      };
-
-      // 1. Front Heart Shell (Foreground, large and readable)
-      for (let j = 0; j < countL1; j++) {
-        const t = (j / countL1) * Math.PI * 2;
-        const pt = heartPoint(t, S * 0.98);
-        const z = 200 + Math.cos(t) * 60;
-        const dummy = new THREE.Object3D();
-        dummy.position.set(pt.x, pt.y, z);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pt.x * 0.25, pt.y * 0.25, z + 600);
-        heartSlots.push({
-          pos: dummy.position.clone(),
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.95 : 1.20
-        });
-      }
-
-      // 2. Bevel Contour Rim (Crisp 3D border)
-      for (let j = 0; j < countL2; j++) {
-        const t = (j / countL2) * Math.PI * 2;
-        const pt = heartPoint(t, S * 1.08);
-        const z = Math.sin(t * 2) * 75;
-        const dummy = new THREE.Object3D();
-        dummy.position.set(pt.x, pt.y, z);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pt.x * 1.5, pt.y, z * 1.5);
-        heartSlots.push({
-          pos: dummy.position.clone(),
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.85 : 1.02
-        });
-      }
-
-      // 3. Back Heart Shell (Visible upon rotation)
-      for (let j = 0; j < countL3; j++) {
-        const t = (j / countL3) * Math.PI * 2;
-        const pt = heartPoint(t, S * 0.98);
-        const z = -200 - Math.cos(t) * 60;
-        const dummy = new THREE.Object3D();
-        dummy.position.set(pt.x, pt.y, z);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pt.x * 0.25, pt.y * 0.25, z - 600);
-        heartSlots.push({
-          pos: dummy.position.clone(),
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.80 : 0.95
-        });
-      }
-
-      // 4. Inner Volumetric Crystal Core (Depth filling)
-      for (let j = 0; j < countL4; j++) {
-        const t = (j * 2.39996) % (Math.PI * 2);
-        const r = 0.28 + (j / countL4) * 0.48;
-        const pt = heartPoint(t, S * r);
-        const z = Math.sin(j * 1.7) * 110 * Math.sqrt(Math.max(0.1, 1 - r * r));
-        heartSlots.push({
-          pos: new THREE.Vector3(pt.x, pt.y, z),
-          rot: new THREE.Euler(Math.sin(j) * 0.12, Math.cos(j) * 0.15, 0),
-          targetScale: isM ? 0.52 : 0.62
-        });
-      }
-
-      // 5. Celestial Orbit Saturnian Galaxy Double Ring
-      const ringLanes = 2;
-      for (let j = 0; j < countL5; j++) {
-        const lane = j % ringLanes;
-        const perLane = Math.max(1, Math.ceil(countL5 / ringLanes));
-        const slot = Math.floor(j / ringLanes);
-        const t = slot / perLane;
-        const radius = (isM ? 1020 : 1380) + lane * (isM ? 200 : 260);
-        const angle = t * Math.PI * 2 + lane * 0.35;
-        const tilt = Math.PI * 0.16;
-
-        const rawX = Math.cos(angle) * radius;
-        const rawZ = Math.sin(angle) * radius;
-        const rawY = Math.sin(angle * 3 + lane) * (isM ? 45 : 70);
-
-        const pos = new THREE.Vector3(
-          rawX,
-          rawY * Math.cos(tilt) - rawZ * Math.sin(tilt) + yOff * 0.4,
-          rawY * Math.sin(tilt) + rawZ * Math.cos(tilt)
-        );
-        const dummy = new THREE.Object3D();
-        dummy.position.copy(pos);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pos.x * 2, pos.y, pos.z * 2);
-
-        heartSlots.push({
-          pos,
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.60 : 0.72
-        });
-      }
-
-      // Map all photo meshes to heart slots
-      let sIdx = 0;
-      for (let i = 0; i < count; i++) {
-        if (i === climaxIdx) {
-          targets.push({
-            pos: new THREE.Vector3(0, yOff - 8.5 * S, 340),
-            rot: new THREE.Euler(-0.04, 0, 0),
-            isClimax: true,
-            targetScale: isM ? 1.25 : 1.45
-          });
-        } else {
-          const slot = heartSlots[sIdx++];
-          if (slot) {
-            targets.push({
-              pos: slot.pos.clone(),
-              rot: slot.rot.clone(),
-              targetScale: slot.targetScale
-            });
-          }
-        }
-      }
-
-      this.holoBaseScale = (16 * S * 0.52) / 104;
-      this.auraBaseSize = 16 * S * 4.2;
-      if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
+      return this.calculateHeartPhotoTargets(count, isMobile);
     } else if (shape === 'wave') {
       // 4-Track 3D Spatial Undulating Wave Ribbons: ALL 545 photos with true depth!
       const isM = isMobile;
@@ -2054,6 +2061,7 @@ class CelestialSphereGallery {
     } else {
       // 3D 澎湃浪漫心跳律动 (Lub-Dub Double Heartbeat, 75bpm 初恋心率)
       let beatScale = 1.0;
+      let heartExpansion = 0;
       let heartPulseY = 0;
       if (this.currentShape === 'heart') {
         const heartPeriod = 1.35;
@@ -2061,38 +2069,63 @@ class CelestialSphereGallery {
         if (ht < 0.16) {
           // 第一心音 Lub：有力收缩膨胀
           const p = Math.sin((ht / 0.16) * Math.PI);
-          beatScale = 1.0 + p * 0.055;
-          heartPulseY = p * 7;
+          const boost = 1.0 + bass * 0.45;
+          beatScale = 1.0 + p * 0.065 * boost;
+          heartExpansion = p * 0.045 * boost;
+          heartPulseY = p * 8.0 * boost;
         } else if (ht >= 0.22 && ht < 0.38) {
           // 第二心音 Dub：舒缓微搏动
           const p = Math.sin(((ht - 0.22) / 0.16) * Math.PI);
-          beatScale = 1.0 + p * 0.028;
-          heartPulseY = p * 4;
+          const boost = 1.0 + bass * 0.30;
+          beatScale = 1.0 + p * 0.032 * boost;
+          heartExpansion = p * 0.022 * boost;
+          heartPulseY = p * 4.0 * boost;
         }
       }
+
+      const heartCy = this.hologramGroup ? this.hologramGroup.position.y : 25;
 
       this.photoMeshes.forEach(mesh => {
         if (mesh !== this.hoveredMesh && mesh.userData.targetPos && !mesh.userData.isAnimating) {
           const idx = mesh.userData.index || 0;
           const heartMode = this.currentShape === 'heart';
-          const waveSpeed = heartMode ? 1.15 : 2.9;
-          const waveFreq = heartMode ? 0.035 : 0.26;
-          const phase = elapsed * waveSpeed - idx * waveFreq;
 
-          // 爱心页只做很轻的共同体呼吸，不让每张照片各自乱跳破坏轮廓。
-          const amp = heartMode ? 2.2 : 12.0;
-          const bounceY = Math.sin(phase) * amp + heartPulseY * (heartMode ? 0.32 : 1);
-          const bounceZ = Math.cos(phase) * (amp * 0.35);
-          const bounceRotZ = heartMode ? 0 : Math.sin(phase) * 0.055;
-          const bounceScale = (heartMode ? 1 : 1.0 + Math.sin(phase) * 0.03) * beatScale;
+          if (heartMode) {
+            const tx = mesh.userData.targetPos.x;
+            const ty = mesh.userData.targetPos.y;
+            const tz = mesh.userData.targetPos.z;
 
-          mesh.position.y = mesh.userData.targetPos.y + bounceY;
-          mesh.position.z = mesh.userData.targetPos.z + bounceZ;
-          mesh.rotation.z = mesh.userData.targetRot.z + bounceRotZ;
+            // 3D 体积式径向微膨胀呼吸：整颗心朝空间三维自然搏动！
+            const dx = tx;
+            const dy = ty - heartCy;
+            const dz = tz;
 
-          const baseScale = mesh.userData.currentScale || mesh.userData.baseScale || 1.0;
-          const s = baseScale * bounceScale;
-          mesh.scale.set(s, s, s);
+            mesh.position.x = tx + dx * heartExpansion;
+            mesh.position.y = ty + dy * heartExpansion + heartPulseY * 0.35;
+            mesh.position.z = tz + dz * heartExpansion;
+            mesh.rotation.z = mesh.userData.targetRot.z;
+
+            const baseScale = mesh.userData.currentScale || mesh.userData.baseScale || 1.0;
+            const s = baseScale * beatScale;
+            mesh.scale.set(s, s, s);
+          } else {
+            const waveSpeed = 2.9;
+            const waveFreq = 0.26;
+            const phase = elapsed * waveSpeed - idx * waveFreq;
+            const amp = 12.0;
+            const bounceY = Math.sin(phase) * amp;
+            const bounceZ = Math.cos(phase) * (amp * 0.35);
+            const bounceRotZ = Math.sin(phase) * 0.055;
+            const bounceScale = (1.0 + Math.sin(phase) * 0.03) * beatScale;
+
+            mesh.position.y = mesh.userData.targetPos.y + bounceY;
+            mesh.position.z = mesh.userData.targetPos.z + bounceZ;
+            mesh.rotation.z = mesh.userData.targetRot.z + bounceRotZ;
+
+            const baseScale = mesh.userData.currentScale || mesh.userData.baseScale || 1.0;
+            const s = baseScale * bounceScale;
+            mesh.scale.set(s, s, s);
+          }
         }
       });
 
@@ -2146,18 +2179,8 @@ class CelestialSphereGallery {
     this.scene.rotation.y = this.mouseParallax.x * 0.5;
     this.scene.rotation.x = this.mouseParallax.y * 0.5;
 
-    // 6. Camera gentle Orbit Update
+    // 6. Camera gentle Orbit Update (360° 全景沉浸式慢速自转，饱满立体无死角)
     if (this.controls) {
-      if (this.currentShape === 'heart' && this.controls.autoRotate) {
-        // 电影式往返运镜：只在正面约 ±23° 内呼吸式摇摆，绝不转到单薄的 90° 侧面。
-        const angle = this.controls.getAzimuthalAngle();
-        const limit = Math.PI * 0.128;
-        if (angle >= limit) this.heartOrbitDirection = -1;
-        if (angle <= -limit) this.heartOrbitDirection = 1;
-        const direction = this.heartOrbitDirection || 1;
-        const edgeEase = 0.22 + 0.78 * Math.max(0, 1 - Math.abs(angle) / limit);
-        this.controls.autoRotateSpeed = 0.30 * direction * edgeEase;
-      }
       if (this.controls.autoRotate || this.currentShape === 'wave') {
         this.controls.update();
       }
