@@ -515,7 +515,11 @@ class EternalApp {
 
     this.setupEntranceOverlay();
 
-    // 9. Attempt direct unmuted audio playback immediately on page open
+    // 9. Ensure 3D Heart tab is cleanly visible on mobile H5
+    const navTabs = document.querySelector('.island-nav-tabs');
+    if (navTabs) navTabs.scrollLeft = 0;
+
+    // 10. Attempt direct unmuted audio playback immediately on page open
 
     this.attemptDirectAutoplay();
 
@@ -2101,92 +2105,70 @@ class EternalApp {
   }
 
   attemptDirectAutoplay() {
-    // 1. Attempt unmuted autoplay directly
-    const p = this.audioElement.play();
-    if (p !== undefined) {
-      p.then(() => {
-        this.dismissEntranceOverlay();
-      }).catch(() => {
-        // Autoplay policy prevented immediate unprompted audio;
-        // Keep entrance notice pill visible and listen for the first user gesture.
-        this.setupFirstInteractionUnlock();
-      });
+    const audio = this.audioElement;
+    if (!audio) return;
+
+    const startPlay = () => {
+      if (audio.paused) {
+        audio.volume = 1.0;
+        audio.muted = false;
+        const p = audio.play();
+        if (p !== undefined) {
+          p.then(() => {
+            this.isPlayingMusic = true;
+            this.syncMusicUI(true);
+            if (this.sphereGallery) this.sphereGallery.setMusicPlaying(true);
+          }).catch(err => {
+            console.log('Autoplay deferred by browser policy:', err);
+          });
+        }
+      }
+    };
+
+    // 1. Immediate unmuted autoplay attempt
+    startPlay();
+
+    // 2. WeChat privileged automatic play hook (zero click required in iOS/Android WeChat)
+    const runWechatAutoplay = () => {
+      if (typeof window.WeixinJSBridge !== 'undefined' && window.WeixinJSBridge.invoke) {
+        window.WeixinJSBridge.invoke('getNetworkType', {}, () => startPlay());
+      } else {
+        startPlay();
+      }
+    };
+
+    if (typeof window.WeixinJSBridge !== 'undefined') {
+      runWechatAutoplay();
+    } else {
+      document.addEventListener('WeixinJSBridgeReady', runWechatAutoplay, false);
     }
 
-    // 2. WeChat automatic play hook
-    document.addEventListener("WeixinJSBridgeReady", () => {
-      if (this.audioElement.paused) {
-        this.audioElement.play().then(() => {
-          this.dismissEntranceOverlay();
-        }).catch(e => console.log('WeChat auto-play note:', e));
-      }
-    }, false);
-  }
-
-  dismissEntranceOverlay(triggerCelebration = false) {
-    const overlay = document.getElementById('entranceOverlay');
-    if (!overlay) return;
-    overlay.classList.add('opacity-0', 'pointer-events-none');
-    setTimeout(() => {
-      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-    }, 400);
-    if (triggerCelebration) {
-      this.celebrateHeart();
-    }
-  }
-
-  setupFirstInteractionUnlock() {
-    let unlocked = false;
-    const unlockHandler = (e) => {
-      if (unlocked) return;
-      unlocked = true;
-
-      this.dismissEntranceOverlay();
-
-      const quickBtn = document.getElementById('quickMusicBtn');
-      const isQuickBtn = quickBtn && (quickBtn === e.target || quickBtn.contains(e.target));
-
-      if (isQuickBtn) {
-        cleanup();
-        return;
-      }
-
-      if (this.audioElement.paused) {
-        this.audioElement.volume = 1.0;
-        this.audioElement.muted = false;
-        this.audioElement.play().then(() => {
-          const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
-          this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
-        }).catch(err => console.log('Unlock audio attempt:', err));
-      }
-
+    // 3. Global silent first-touch unlock (zero modal, zero button click needed)
+    // Any natural touch/drag on the 3D heart or screen instantly begins audio
+    const silentUnlock = () => {
+      startPlay();
       cleanup();
     };
-
     const cleanup = () => {
-      window.removeEventListener('click', unlockHandler, true);
-      window.removeEventListener('touchend', unlockHandler, true);
+      window.removeEventListener('touchstart', silentUnlock, { capture: true, passive: true });
+      window.removeEventListener('pointerdown', silentUnlock, { capture: true, passive: true });
+      window.removeEventListener('mousedown', silentUnlock, { capture: true, passive: true });
+      window.removeEventListener('scroll', silentUnlock, { capture: true, passive: true });
+      window.removeEventListener('wheel', silentUnlock, { capture: true, passive: true });
     };
-
-    window.addEventListener('click', unlockHandler, true);
-    window.addEventListener('touchend', unlockHandler, true);
+    window.addEventListener('touchstart', silentUnlock, { capture: true, passive: true });
+    window.addEventListener('pointerdown', silentUnlock, { capture: true, passive: true });
+    window.addEventListener('mousedown', silentUnlock, { capture: true, passive: true });
+    window.addEventListener('scroll', silentUnlock, { capture: true, passive: true });
+    window.addEventListener('wheel', silentUnlock, { capture: true, passive: true });
   }
 
   setupEntranceOverlay() {
+    // Completely remove any blocking overlay
     const overlay = document.getElementById('entranceOverlay');
-    if (!overlay) return;
-    overlay.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.dismissEntranceOverlay(true);
-      if (this.audioElement.paused) {
-        this.audioElement.volume = 1.0;
-        this.audioElement.muted = false;
-        this.audioElement.play().then(() => {
-          const track = this.playlist[this.currentTrackIndex] || this.playlist[0];
-          this.showToast(`🎶 正在播放：${track.title} · ${track.artist}`);
-        }).catch(err => console.log('Overlay click play note:', err));
-      }
-    });
+    if (overlay && overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay);
+    }
   }
 
   bindDOMEvents() {

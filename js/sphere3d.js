@@ -968,6 +968,12 @@ class CelestialSphereGallery {
     const cardGeo = new THREE.PlaneGeometry(cardWidth, cardHeight);
     const sharedEdgesGeo = new THREE.EdgesGeometry(cardGeo);
 
+    // High-Fidelity Prioritized Texture Queue Loader
+    if (!this.textureCache) this.textureCache = new Map();
+    if (!this.textureLoader) this.textureLoader = new THREE.TextureLoader();
+
+    const loadTaskQueue = [];
+
     displayPhotos.forEach((item, index) => {
       const frameGroup = new THREE.Group();
       frameGroup.userData = {
@@ -1020,71 +1026,21 @@ class CelestialSphereGallery {
         reflBackMat.needsUpdate = true;
       };
 
+      frameGroup.userData.applyTexture = applyTexture;
+
       if (item.isClimaxLetter) {
         const letterTex = this.createLetterCoverTexture();
         applyTexture(letterTex);
         this.climaxCardMesh = frameGroup;
-      } else if (item.isVideo && item.videoUrl) {
-        // Live 3D Video Memory: Auto-playing & looping directly on 3D Card & Mirror Reflection
-        const vid = document.createElement('video');
-        vid.src = item.videoUrl;
-        vid.crossOrigin = 'anonymous';
-        vid.loop = true;
-        vid.muted = true;
-        vid.autoplay = true;
-        vid.playsInline = true;
-        vid.setAttribute('playsinline', '');
-        vid.setAttribute('webkit-playsinline', '');
-        vid.play().catch(() => {
-          const unlock = () => {
-            vid.play().catch(() => {});
-            window.removeEventListener('pointerdown', unlock);
-          };
-          window.addEventListener('pointerdown', unlock, { once: true });
-        });
-
-        const vTex = new THREE.VideoTexture(vid);
-        vTex.minFilter = THREE.LinearFilter;
-        vTex.magFilter = THREE.LinearFilter;
-        vTex.format = THREE.RGBAFormat;
-        vTex.encoding = THREE.sRGBEncoding;
-        applyTexture(vTex);
       } else {
-        // High-Fidelity Real Photo Texture Loader (Three.js Native Loader)
-        if (!this.textureLoader) {
-          this.textureLoader = new THREE.TextureLoader();
-        }
-        
-        let targetUrl = item.url;
-
-        this.textureLoader.load(
-          targetUrl,
-          (tex) => {
-            tex.encoding = THREE.sRGBEncoding;
-            tex.minFilter = THREE.LinearFilter;
-            tex.magFilter = THREE.LinearFilter;
-            tex.generateMipmaps = true;
-            tex.needsUpdate = true;
-            applyTexture(tex);
-          },
-          undefined,
-          (err) => {
-            console.warn('Photo texture load retry with guaranteed real couple photo:', item.url);
-            if (window.PHOTO_THUMBS_DATA) {
-              const keys = Object.keys(window.PHOTO_THUMBS_DATA);
-              if (keys.length > 0) {
-                const fallbackUrl = window.PHOTO_THUMBS_DATA[keys[index % keys.length]];
-                this.textureLoader.load(fallbackUrl, (t) => {
-                  t.encoding = THREE.sRGBEncoding;
-                  applyTexture(t);
-                });
-                return;
-              }
-            }
-            const canvasTex = this.createFallbackTexture(item.title, item.date);
-            applyTexture(canvasTex);
-          }
-        );
+        // Collect into prioritized loading queue (index < 48 gets Tier 1 immediate priority)
+        loadTaskQueue.push({
+          url: item.url,
+          index,
+          item,
+          applyTexture,
+          isTier1: index < 48
+        });
       }
 
       // Front Face (z = +0.6)
@@ -1187,678 +1143,52 @@ class CelestialSphereGallery {
       this.photoMeshes.push(frameGroup);
     });
 
-    // Trigger Entrance Assembly Animation (flying into 3D heart one by one!)
-    this.playEntranceAnimation();
-  }
+    // ---------------------------------------------------------
+    // Tiered Concurrent Texture Dispatcher (Zero Network Stalling)
+    // ---------------------------------------------------------
+    const CONCURRENCY = 8;
+    let activeWorkers = 0;
+    let queueIdx = 0;
 
-  // -------------------------------------------------------------
-  // Entrance Staggered Assembly into 3D Heart ("照片一个一个弹性弹出")
-  // -------------------------------------------------------------
-  playEntranceAnimation() {
-    this.applyLayout('heart', false);
-  }
+    const pumpQueue = () => {
+      while (activeWorkers < CONCURRENCY && queueIdx < loadTaskQueue.length) {
+        const task = loadTaskQueue[queueIdx++];
+        activeWorkers++;
 
-  // -------------------------------------------------------------
-  // Dynamic Shape Layout Switcher with Smooth Camera Fly & Stagger Pop
-  // -------------------------------------------------------------
-  setCarouselBatch(batchIdx) {
-    if (this.carouselTotalBatches <= 0) return;
-    this.carouselBatchIndex = (batchIdx + this.carouselTotalBatches) % this.carouselTotalBatches;
-    if (this.currentShape === 'carousel') {
-      this.applyLayout('carousel', false);
-    }
-  }
+        const onComplete = (tex) => {
+          task.applyTexture(tex);
+          activeWorkers--;
+          pumpQueue();
+        };
 
-  nextCarouselBatch() {
-    this.setCarouselBatch(this.carouselBatchIndex + 1);
-  }
-
-  prevCarouselBatch() {
-    this.setCarouselBatch(this.carouselBatchIndex - 1);
-  }
-
-  applyLayout(shape, instant = false) {
-    this.currentShape = shape;
-    const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-    let camTargetX = 0, camTargetY = this.defaultCamY, camTargetZ = this.defaultCamZ;
-    let lookTargetX = 0, lookTargetY = 25, lookTargetZ = 0;
-
-    if (shape === 'carousel') {
-      const radius = isMobile ? 960 : 1380;
-      camTargetX = 0;
-      camTargetY = isMobile ? 35 : 50;
-      // 相机置于环形回廊的圆心附近：到各段环壁的距离基本一致（正前方与侧面差异 <16%），
-      // 彻底消除「转到侧面时照片突然放大、前后互相遮挡、甚至看到背面」的问题。
-      camTargetZ = isMobile ? 170 : 210;
-      lookTargetX = 0;
-      lookTargetY = 25;
-      lookTargetZ = 0;
-      if (this.groundMirror) {
-        const mirrorScale = (radius * 1.6) / 880;
-        this.groundMirror.scale.set(mirrorScale, mirrorScale, mirrorScale);
-        this.groundMirror.position.y = isMobile ? -300 : -390;
-        this.groundMirror.visible = true;
-      }
-    } else if (shape === 'wave') {
-      camTargetX = 0;
-      camTargetY = isMobile ? 90 : 120;
-      camTargetZ = isMobile ? 1200 : 1350;
-      lookTargetX = 0;
-      lookTargetY = 10;
-      lookTargetZ = -600;
-      if (this.groundMirror) this.groundMirror.visible = false;
-    } else if (shape === 'heart') {
-      camTargetX = 0;
-      camTargetY = isMobile ? 40 : 50;
-      camTargetZ = isMobile ? 1350 : 1480;
-      lookTargetX = 0;
-      lookTargetY = 25;
-      lookTargetZ = 0;
-      if (this.groundMirror) this.groundMirror.visible = false;
-    } else if (shape === 'sphere') {
-      camTargetX = 0;
-      camTargetY = isMobile ? 30 : 40;
-      camTargetZ = isMobile ? 1550 : 1880;
-      lookTargetX = 0;
-      lookTargetY = 0;
-      lookTargetZ = 0;
-      if (this.groundMirror) this.groundMirror.visible = false;
-    }
-
-    // Disable controls during camera tween
-    if (this.controls) {
-      this.controls.autoRotate = false;
-      this.controls.enabled = false;
-    }
-
-    const configureControlsForShape = () => {
-      if (!this.controls) return;
-      this.controls.target.set(lookTargetX, lookTargetY, lookTargetZ);
-      this.controls.update();
-      this.controls.enabled = true;
-      this.controls.minAzimuthAngle = -Infinity;
-      this.controls.maxAzimuthAngle = Infinity;
-      this.controls.minDistance = 0;
-      this.controls.maxDistance = Infinity;
-      if (shape === 'carousel') {
-        this.controls.minPolarAngle = 0.05;
-        this.controls.maxPolarAngle = Math.PI * 0.94;
-        this.controls.rotateSpeed = 0.75;
-        // 相机位于环心附近：限制缩放区间，避免推进环壁内部或塌陷到环心导致画面混乱
-        this.controls.minDistance = 130;
-        this.controls.maxDistance = 780;
-        this.controls.autoRotate = true;
-        this.controls.autoRotateSpeed = 0.45;
-      } else if (shape === 'wave') {
-        this.controls.minPolarAngle = Math.PI * 0.32;
-        this.controls.maxPolarAngle = Math.PI * 0.65;
-        this.controls.enableRotate = true;
-        this.controls.autoRotate = false;
-      } else if (shape === 'heart') {
-        this.controls.enableRotate = true;
-        this.controls.minPolarAngle = Math.PI * 0.32;
-        this.controls.maxPolarAngle = Math.PI * 0.68;
-        this.controls.minAzimuthAngle = -Math.PI * 0.185;
-        this.controls.maxAzimuthAngle = Math.PI * 0.185;
-        this.controls.autoRotate = true;
-        this.controls.autoRotateSpeed = 0.28;
-        this.heartOrbitDirection = 1;
-      } else {
-        this.controls.enableRotate = true;
-        this.controls.minPolarAngle = Math.PI * 0.18;
-        this.controls.maxPolarAngle = Math.PI * 0.78;
-        this.controls.autoRotate = true;
-        this.controls.autoRotateSpeed = 0.40;
+        const targetUrl = task.url;
+        if (this.textureCache.has(targetUrl)) {
+          onComplete(this.textureCache.get(targetUrl));
+        } else {
+          this.textureLoader.load(
+            targetUrl,
+            (tex) => {
+              tex.encoding = THREE.sRGBEncoding;
+              tex.minFilter = THREE.LinearFilter;
+              tex.magFilter = THREE.LinearFilter;
+              tex.generateMipmaps = false; // Disable heavy mipmaps for lightning-fast GPU texture upload!
+              tex.needsUpdate = true;
+              this.textureCache.set(targetUrl, tex);
+              onComplete(tex);
+            },
+            undefined,
+            (err) => {
+              console.warn('Fallback texture for:', targetUrl);
+              const fallbackTex = this.createFallbackTexture(task.item.title, task.item.date);
+              onComplete(fallbackTex);
+            }
+          );
+        }
       }
     };
 
-    if (instant || typeof gsap === 'undefined') {
-      this.camera.position.set(camTargetX, camTargetY, camTargetZ);
-      this.camera.lookAt(lookTargetX, lookTargetY, lookTargetZ);
-      configureControlsForShape();
-    } else {
-      gsap.killTweensOf(this.camera.position);
-      gsap.to(this.camera.position, {
-        x: camTargetX,
-        y: camTargetY,
-        z: camTargetZ,
-        duration: 0.85,
-        ease: 'power3.out',
-        onUpdate: () => {
-          this.camera.lookAt(lookTargetX, lookTargetY, lookTargetZ);
-        },
-        onComplete: () => {
-          configureControlsForShape();
-        }
-      });
-    }
-
-    const targets = this.calculateTargets(shape);
-
-    const coreOn = (shape === 'heart' || shape === 'sphere');
-    if (this.hologramGroup) this.hologramGroup.visible = coreOn;
-    if (this.auraSprite) this.auraSprite.visible = (shape === 'heart' || shape === 'wave');
-    if (this.risingHearts) this.risingHearts.visible = (shape === 'heart' || shape === 'wave');
-    if (this.waveNet) this.waveNet.visible = (shape === 'wave');
-
-    const instantMesh = instant || shape === 'wave' || typeof gsap === 'undefined';
-
-    this.photoMeshes.forEach((mesh, index) => {
-      const target = targets[index % targets.length];
-      if (!target) return;
-
-      mesh.userData.targetPos = target.pos.clone();
-      mesh.userData.targetRot = target.rot.clone();
-      mesh.userData.inWave = target.inWave || false;
-      mesh.userData.waveTrack = (typeof target.waveTrack === 'number') ? target.waveTrack : -1;
-      mesh.userData.waveSlot = (typeof target.waveSlot === 'number') ? target.waveSlot : -1;
-      mesh.userData.carouselTier = (typeof target.carouselTier === 'number') ? target.carouselTier : -1;
-
-      // Mirror reflection for lowest tier (Floor 0) in Carousel mode
-      if (mesh.userData.reflectionGroup) {
-        mesh.userData.reflectionGroup.visible = (shape === 'carousel' && target.carouselTier === 0);
-      }
-
-      const targetScale = target.targetScale || 1.0;
-      mesh.userData.baseScale = targetScale;
-      mesh.userData.currentScale = targetScale;
-
-      if (instantMesh) {
-        mesh.userData.isAnimating = false;
-        mesh.position.copy(target.pos);
-        mesh.rotation.copy(target.rot);
-        mesh.scale.set(targetScale, targetScale, targetScale);
-      } else {
-        const staggerDelay = (index % 40) * 0.02;
-        mesh.userData.isAnimating = true;
-
-        gsap.killTweensOf(mesh.position);
-        gsap.killTweensOf(mesh.rotation);
-        gsap.killTweensOf(mesh.scale);
-
-        gsap.to(mesh.scale, {
-          x: targetScale,
-          y: targetScale,
-          z: targetScale,
-          duration: 0.75,
-          ease: 'back.out(2.4)',
-          delay: staggerDelay
-        });
-        gsap.to(mesh.position, {
-          x: target.pos.x,
-          y: target.pos.y,
-          z: target.pos.z,
-          duration: 0.85,
-          ease: 'power3.out',
-          delay: staggerDelay,
-          onComplete: () => {
-            mesh.userData.isAnimating = false;
-          }
-        });
-        gsap.to(mesh.rotation, {
-          x: target.rot.x,
-          y: target.rot.y,
-          z: target.rot.z,
-          duration: 0.85,
-          ease: 'power3.out',
-          delay: staggerDelay
-        });
-      }
-    });
-  }
-
-  calculateTargets(shape) {
-    const targets = [];
-    const count = this.photoMeshes.length;
-    const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
-
-    if (shape === 'heart') return this.calculateHeartPhotoTargets(count, isMobile);
-
-    if (shape === 'heart') {
-      // 5 Distinct Depth Architectural Layers totaling ALL 545 photos:
-      // Front Shell (14%) + Rim Contour (18%) + Back Shell (14%) + Inner Crystal (26%) + Orbit Galaxy Rings (28%) + Apex Climax Card
-      const isM = isMobile;
-      const S = isM ? 22 : 40;
-      const yOff = 25 + 2.5 * S;
-
-      const climaxIdx = this.photoMeshes.findIndex(m => m.userData.isClimaxLetter);
-      const normalCount = count - (climaxIdx >= 0 ? 1 : 0);
-
-      const countL1 = Math.max(10, Math.round(normalCount * 0.14));
-      const countL2 = Math.max(12, Math.round(normalCount * 0.18));
-      const countL3 = Math.max(10, Math.round(normalCount * 0.14));
-      const countL4 = Math.max(15, Math.round(normalCount * 0.26));
-      const countL5 = Math.max(0, normalCount - (countL1 + countL2 + countL3 + countL4));
-
-      const heartSlots = [];
-
-      const heartPoint = (t, scale) => {
-        const x = 16 * Math.pow(Math.sin(t), 3) * scale;
-        const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * scale + yOff;
-        return { x, y };
-      };
-
-      // 1. Front Heart Shell (Foreground, large and readable)
-      for (let j = 0; j < countL1; j++) {
-        const t = (j / countL1) * Math.PI * 2;
-        const pt = heartPoint(t, S * 0.98);
-        const z = 200 + Math.cos(t) * 60;
-        const dummy = new THREE.Object3D();
-        dummy.position.set(pt.x, pt.y, z);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pt.x * 0.25, pt.y * 0.25, z + 600);
-        heartSlots.push({
-          pos: dummy.position.clone(),
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.95 : 1.20
-        });
-      }
-
-      // 2. Bevel Contour Rim (Crisp 3D border)
-      for (let j = 0; j < countL2; j++) {
-        const t = (j / countL2) * Math.PI * 2;
-        const pt = heartPoint(t, S * 1.08);
-        const z = Math.sin(t * 2) * 75;
-        const dummy = new THREE.Object3D();
-        dummy.position.set(pt.x, pt.y, z);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pt.x * 1.5, pt.y, z * 1.5);
-        heartSlots.push({
-          pos: dummy.position.clone(),
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.85 : 1.02
-        });
-      }
-
-      // 3. Back Heart Shell (Visible upon rotation)
-      for (let j = 0; j < countL3; j++) {
-        const t = (j / countL3) * Math.PI * 2;
-        const pt = heartPoint(t, S * 0.98);
-        const z = -200 - Math.cos(t) * 60;
-        const dummy = new THREE.Object3D();
-        dummy.position.set(pt.x, pt.y, z);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pt.x * 0.25, pt.y * 0.25, z - 600);
-        heartSlots.push({
-          pos: dummy.position.clone(),
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.80 : 0.95
-        });
-      }
-
-      // 4. Inner Volumetric Crystal Core (Depth filling)
-      for (let j = 0; j < countL4; j++) {
-        const t = (j * 2.39996) % (Math.PI * 2);
-        const r = 0.28 + (j / countL4) * 0.48;
-        const pt = heartPoint(t, S * r);
-        const z = Math.sin(j * 1.7) * 110 * Math.sqrt(Math.max(0.1, 1 - r * r));
-        heartSlots.push({
-          pos: new THREE.Vector3(pt.x, pt.y, z),
-          rot: new THREE.Euler(Math.sin(j) * 0.12, Math.cos(j) * 0.15, 0),
-          targetScale: isM ? 0.52 : 0.62
-        });
-      }
-
-      // 5. Celestial Orbit Saturnian Galaxy Double Ring
-      const ringLanes = 2;
-      for (let j = 0; j < countL5; j++) {
-        const lane = j % ringLanes;
-        const perLane = Math.max(1, Math.ceil(countL5 / ringLanes));
-        const slot = Math.floor(j / ringLanes);
-        const t = slot / perLane;
-        const radius = (isM ? 1020 : 1380) + lane * (isM ? 200 : 260);
-        const angle = t * Math.PI * 2 + lane * 0.35;
-        const tilt = Math.PI * 0.16;
-
-        const rawX = Math.cos(angle) * radius;
-        const rawZ = Math.sin(angle) * radius;
-        const rawY = Math.sin(angle * 3 + lane) * (isM ? 45 : 70);
-
-        const pos = new THREE.Vector3(
-          rawX,
-          rawY * Math.cos(tilt) - rawZ * Math.sin(tilt) + yOff * 0.4,
-          rawY * Math.sin(tilt) + rawZ * Math.cos(tilt)
-        );
-        const dummy = new THREE.Object3D();
-        dummy.position.copy(pos);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(pos.x * 2, pos.y, pos.z * 2);
-
-        heartSlots.push({
-          pos,
-          rot: dummy.rotation.clone(),
-          targetScale: isM ? 0.60 : 0.72
-        });
-      }
-
-      // Map all photo meshes to heart slots
-      let sIdx = 0;
-      for (let i = 0; i < count; i++) {
-        if (i === climaxIdx) {
-          targets.push({
-            pos: new THREE.Vector3(0, yOff - 8.5 * S, 340),
-            rot: new THREE.Euler(-0.04, 0, 0),
-            isClimax: true,
-            targetScale: isM ? 1.25 : 1.45
-          });
-        } else {
-          const slot = heartSlots[sIdx++];
-          if (slot) {
-            targets.push({
-              pos: slot.pos.clone(),
-              rot: slot.rot.clone(),
-              targetScale: slot.targetScale
-            });
-          }
-        }
-      }
-
-      this.holoBaseScale = (16 * S * 0.52) / 104;
-      this.auraBaseSize = 16 * S * 4.2;
-      if (this.auraSprite) this.auraSprite.scale.set(this.auraBaseSize, this.auraBaseSize, 1);
-    } else if (shape === 'wave') {
-      // 4-Track 3D Spatial Undulating Wave Ribbons: ALL 545 photos with true depth!
-      const isM = isMobile;
-      const numTracks = 4;
-      const trackConfigs = [
-        { baseZ: 100,   baseY: 85,  scale: isM ? 0.95 : 1.15, spanX: isM ? 2800 : 3800 },
-        { baseZ: -450,  baseY: -20, scale: isM ? 0.72 : 0.85, spanX: isM ? 3200 : 4200 },
-        { baseZ: -1050, baseY: 65,  scale: isM ? 0.55 : 0.65, spanX: isM ? 3600 : 4600 },
-        { baseZ: -1700, baseY: -35, scale: isM ? 0.40 : 0.48, spanX: isM ? 4000 : 5000 }
-      ];
-
-      for (let i = 0; i < count; i++) {
-        const track = i % numTracks;
-        const cfg = trackConfigs[track];
-        const perTrack = Math.ceil(count / numTracks);
-        const slot = Math.floor(i / numTracks);
-        const norm = (slot / Math.max(1, perTrack - 1)) - 0.5;
-        const x = norm * cfg.spanX;
-        const y = cfg.baseY;
-        const z = cfg.baseZ;
-
-        targets.push({
-          pos: new THREE.Vector3(x, y, z),
-          rot: new THREE.Euler(0, 0, 0),
-          inWave: true,
-          waveTrack: track,
-          waveSlot: slot,
-          targetScale: cfg.scale
-        });
-      }
-
-      const edges = [];
-      for (let i = 0; i < count; i++) {
-        if (i + numTracks < count) edges.push([i, i + numTracks]);
-      }
-      this.waveGridEdges = edges;
-      this.ensureWaveNeuralNet(edges);
-    } else if (shape === 'carousel') {
-      // 5-Tier Roman Colosseum / Rotunda Gallery: ALL 545 photos simultaneously displayed!
-      const isM = isMobile;
-      const numTiers = 5;
-      const floorHeights = isM
-        ? [-260, -130, 0, 130, 260]
-        : [-340, -170, 0, 170, 340];
-      const radius = isM ? 960 : 1380;
-      const perTier = Math.ceil(count / numTiers);
-
-      for (let i = 0; i < count; i++) {
-        const tier = i % numTiers;
-        const slot = Math.floor(i / numTiers);
-        const theta = (slot / perTier) * Math.PI * 2 + (tier * 0.08);
-
-        const x = radius * Math.sin(theta);
-        const z = radius * Math.cos(theta);
-        const y = floorHeights[tier];
-
-        const pos = new THREE.Vector3(x, y, z);
-        const rot = new THREE.Euler(0, theta + Math.PI, 0);
-
-        targets.push({
-          pos,
-          rot,
-          inCarousel: true,
-          carouselTier: tier,
-          targetScale: isM ? 0.82 : 0.95
-        });
-      }
-    } else if (shape === 'sphere') {
-      // 545 Photos Fibonacci Sphere: R=1420px, Y vertical, upright, zero flip
-      const radius = isMobile ? 1050 : 1420;
-      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-
-      for (let i = 0; i < count; i++) {
-        const y = ((i * 2 + 1) / count - 1) * 0.85 * radius;
-        const rAtY = Math.sqrt(Math.max(0, radius * radius - y * y));
-        const theta = i * goldenAngle;
-        const x = Math.cos(theta) * rAtY;
-        const z = Math.sin(theta) * rAtY;
-
-        const pos = new THREE.Vector3(x, y, z);
-        const dummy = new THREE.Object3D();
-        dummy.position.copy(pos);
-        dummy.up.set(0, 1, 0);
-        dummy.lookAt(x * 2, y * 2, z * 2);
-
-        targets.push({
-          pos,
-          rot: dummy.rotation.clone(),
-          targetScale: isMobile ? 0.85 : 0.98
-        });
-      }
-    }
-
-    return targets;
-  }
-
-  bindEvents() {
-    window.addEventListener('resize', () => {
-      if (!this.container || !this.renderer) return;
-      const width = this.container.clientWidth || window.innerWidth;
-      const height = this.container.clientHeight || window.innerHeight;
-      this.camera.aspect = width / height;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(width, height);
-      // 「照片海浪墙」需要随窗口尺寸重新铺排，保证所有照片始终完整入画
-      if (this.currentShape === 'wave') {
-      const isM = (this.container?.clientWidth || window.innerWidth) < 768;
-      const t = elapsed * 0.75 + (this.wavePhase || 0);
-      const panY = this.wavePanY || 0;
-      const n = this.photoMeshes.length;
-
-      const trackParams = [
-        { baseZ: 100,   baseY: 85,  scale: isM ? 0.95 : 1.15, speed: 0.85, freq: 0.0028, ampY: 75, ampZ: 50 },
-        { baseZ: -450,  baseY: -20, scale: isM ? 0.72 : 0.85, speed: 0.70, freq: 0.0024, ampY: 65, ampZ: 42 },
-        { baseZ: -1050, baseY: 65,  scale: isM ? 0.55 : 0.65, speed: 0.58, freq: 0.0020, ampY: 55, ampZ: 35 },
-        { baseZ: -1700, baseY: -35, scale: isM ? 0.40 : 0.48, speed: 0.45, freq: 0.0016, ampY: 45, ampZ: 28 }
-      ];
-
-      for (let i = 0; i < n; i++) {
-        const mesh = this.photoMeshes[i];
-        if (!mesh) continue;
-        const track = (typeof mesh.userData.waveTrack === 'number' && mesh.userData.waveTrack >= 0) ? mesh.userData.waveTrack : (i % 4);
-        const p = trackParams[track];
-        const baseX = (mesh.userData.targetPos ? mesh.userData.targetPos.x : 0);
-
-        const phase = baseX * p.freq + t * p.speed + track * 0.85;
-        const waveY = Math.sin(phase) * p.ampY + Math.cos(baseX * 0.0012 - t * 0.5) * 25;
-        const waveZ = Math.cos(phase) * p.ampZ;
-
-        const x = baseX + Math.sin(t * 0.3 + i * 0.05) * 8;
-        const y = p.baseY + waveY + panY;
-        const z = p.baseZ + waveZ;
-
-        const rotY = Math.cos(phase) * 0.18;
-        const rotX = -Math.sin(phase) * 0.12;
-        const rotZ = Math.sin(baseX * 0.001 + t * 0.3) * 0.035;
-
-        mesh.position.set(x, y, z);
-        mesh.rotation.set(rotX, rotY, rotZ);
-
-        if (mesh !== this.hoveredMesh) {
-          mesh.scale.set(p.scale, p.scale, p.scale);
-        }
-        mesh.userData.currentScale = p.scale;
-      }
-
-      if (this.waveNet && this.waveGridEdges && this.waveNet.visible) {
-        const attr = this.waveNet.geometry.attributes.position;
-        const cattr = this.waveNet.geometry.attributes.color;
-        const arr = attr.array;
-        const carr = cattr.array;
-        const edges = this.waveGridEdges;
-        for (let e = 0; e < edges.length; e++) {
-          const a = this.photoMeshes[edges[e][0]];
-          const b = this.photoMeshes[edges[e][1]];
-          if (!a || !b) continue;
-          const o = e * 6;
-          arr[o]     = a.position.x; arr[o + 1] = a.position.y; arr[o + 2] = a.position.z + 2;
-          arr[o + 3] = b.position.x; arr[o + 4] = b.position.y; arr[o + 5] = b.position.z + 2;
-          carr[o] = 0.98; carr[o + 1] = 0.42; carr[o + 2] = 0.65;
-          carr[o + 3] = 0.45; carr[o + 4] = 0.75; carr[o + 5] = 1.0;
-        }
-        attr.needsUpdate = true;
-        cattr.needsUpdate = true;
-        this.waveNet.material.opacity = 0.28 + Math.sin(elapsed * 0.9) * 0.08 + bass * 0.15;
-      }
-    } else {
-        // High-Fidelity Real Photo Texture Loader (Three.js Native Loader)
-        if (!this.textureLoader) {
-          this.textureLoader = new THREE.TextureLoader();
-        }
-        
-        let targetUrl = item.url;
-
-        this.textureLoader.load(
-          targetUrl,
-          (tex) => {
-            tex.encoding = THREE.sRGBEncoding;
-            tex.minFilter = THREE.LinearFilter;
-            tex.magFilter = THREE.LinearFilter;
-            tex.generateMipmaps = true;
-            tex.needsUpdate = true;
-            applyTexture(tex);
-          },
-          undefined,
-          (err) => {
-            console.warn('Photo texture load retry with guaranteed real couple photo:', item.url);
-            if (window.PHOTO_THUMBS_DATA) {
-              const keys = Object.keys(window.PHOTO_THUMBS_DATA);
-              if (keys.length > 0) {
-                const fallbackUrl = window.PHOTO_THUMBS_DATA[keys[index % keys.length]];
-                this.textureLoader.load(fallbackUrl, (t) => {
-                  t.encoding = THREE.sRGBEncoding;
-                  applyTexture(t);
-                });
-                return;
-              }
-            }
-            const canvasTex = this.createFallbackTexture(item.title, item.date);
-            applyTexture(canvasTex);
-          }
-        );
-      }
-
-      // Front Face (z = +0.6)
-      const frontMesh = new THREE.Mesh(cardGeo, frontMat);
-      frontMesh.position.z = 0.6;
-      frameGroup.add(frontMesh);
-
-      // Back Face (z = -0.6, rotated PI around Y so photo is upright and not horizontally flipped)
-      const backMesh = new THREE.Mesh(cardGeo, backMat);
-      backMesh.position.z = -0.6;
-      backMesh.rotation.y = Math.PI;
-      frameGroup.add(backMesh);
-
-      // Glowing Outer Bezel Frame on Front and Back
-      const edges = sharedEdgesGeo;
-      const frameColor = item.isClimaxLetter ? 0xfbbf24 : (item.isVideo ? 0x38bdf8 : 0xffffff);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: frameColor,
-        transparent: true,
-        opacity: item.isClimaxLetter ? 1.0 : (item.isVideo ? 0.9 : 0.7),
-        linewidth: item.isClimaxLetter ? 3 : 2
-      });
-
-      const frontBorder = new THREE.LineSegments(edges, lineMat);
-      frontBorder.position.z = 0.8;
-      frameGroup.add(frontBorder);
-
-      const backBorder = new THREE.LineSegments(edges, lineMat);
-      backBorder.position.z = -0.8;
-      frameGroup.add(backBorder);
-
-      frameGroup.userData.borderLine = frontBorder;
-      frameGroup.userData.backBorder = backBorder;
-
-      // Nouver Vertical Mirror Reflection Group (Inverted Y Symmetry)
-      const reflectionGroup = new THREE.Group();
-      reflectionGroup.position.y = -cardHeight - 1.5;
-      reflectionGroup.scale.y = -1;
-      reflectionGroup.visible = false;
-
-      const reflFrontMesh = new THREE.Mesh(cardGeo, reflFrontMat);
-      reflFrontMesh.position.z = 0.6;
-      reflectionGroup.add(reflFrontMesh);
-
-      const reflBackMesh = new THREE.Mesh(cardGeo, reflBackMat);
-      reflBackMesh.position.z = -0.6;
-      reflBackMesh.rotation.y = Math.PI;
-      reflectionGroup.add(reflBackMesh);
-
-      const reflBorderMat = new THREE.LineBasicMaterial({
-        color: frameColor,
-        transparent: true,
-        opacity: 0.22,
-        linewidth: 1
-      });
-      const reflBorder = new THREE.LineSegments(edges, reflBorderMat);
-      reflBorder.position.z = 0.8;
-      reflectionGroup.add(reflBorder);
-
-      frameGroup.add(reflectionGroup);
-      frameGroup.userData.reflectionGroup = reflectionGroup;
-
-      // Video play indicator badge if video (on Front and Back)
-      if (item.isVideo && !item.isClimaxLetter) {
-        const badgeGeo = new THREE.CircleGeometry(16, 24);
-        const bc = document.createElement('canvas');
-        bc.width = 64; bc.height = 64;
-        const bctx = bc.getContext('2d');
-        bctx.fillStyle = 'rgba(56, 189, 248, 0.95)';
-        bctx.beginPath(); bctx.arc(32, 32, 28, 0, Math.PI * 2); bctx.fill();
-        bctx.fillStyle = '#ffffff';
-        bctx.beginPath(); bctx.moveTo(26, 20); bctx.lineTo(44, 32); bctx.lineTo(26, 44); bctx.fill();
-        const badgeTex = new THREE.CanvasTexture(bc);
-        const badgeMat = new THREE.MeshBasicMaterial({ map: badgeTex, transparent: true });
-
-        const frontBadge = new THREE.Mesh(badgeGeo, badgeMat);
-        frontBadge.position.set(0, 0, 1.2);
-        frameGroup.add(frontBadge);
-
-        const backBadge = new THREE.Mesh(badgeGeo, badgeMat);
-        backBadge.position.set(0, 0, -1.2);
-        backBadge.rotation.y = Math.PI;
-        frameGroup.add(backBadge);
-      }
-
-      // Start position: Randomly dispersed in deep 3D space
-      frameGroup.position.set(
-        (Math.random() - 0.5) * 2600,
-        (Math.random() - 0.5) * 2200,
-        (Math.random() - 0.5) * 2600
-      );
-      frameGroup.rotation.set(
-        (Math.random() - 0.5) * Math.PI,
-        (Math.random() - 0.5) * Math.PI,
-        (Math.random() - 0.5) * Math.PI
-      );
-      frameGroup.scale.set(0.01, 0.01, 0.01);
-
-      this.scene.add(frameGroup);
-      this.photoMeshes.push(frameGroup);
-    });
+    // Kick off prioritized concurrent loading immediately!
+    pumpQueue();
 
     // Trigger Entrance Assembly Animation (flying into 3D heart one by one!)
     this.playEntranceAnimation();

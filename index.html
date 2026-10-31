@@ -29,9 +29,9 @@
        4 大浪漫 3D 风格一键切换（单次点击即刻响应）
        ========================================================================= -->
   <nav class="island-nav">
-    <div class="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar">
+    <div class="island-nav-tabs flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar flex-1 min-w-0">
       <button class="nav-tab active" data-shape="heart" title="3D 立体旋转大爱心聚合照片墙">
-        <span>3D立体爱心</span>
+        <span>♥ 3D立体爱心</span>
       </button>
       <button class="nav-tab" data-shape="wave" title="545 张珍藏回忆全量铺开的 3D 照片海浪墙 · 神经网络突触随波光流动">
         <span>时光波浪</span>
@@ -50,32 +50,32 @@
       </button>
     </div>
 
-    <div class="h-4 w-[1px] bg-white/10 mx-1 flex-shrink-0"></div>
+    <div class="hidden sm:block h-4 w-[1px] bg-white/10 mx-1 flex-shrink-0"></div>
 
-    <div class="flex items-center gap-1.5 flex-shrink-0">
+    <div class="island-nav-actions flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
       <!-- Music Play/Pause Quick Pill & Sequential Playlist Controller -->
       <div class="flex items-center gap-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-        <button id="quickMusicPrevBtn" title="上一首" class="w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white flex items-center justify-center transition-all">⏮</button>
-        <button id="quickMusicBtn" class="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/15 text-xs text-zinc-300 transition-all">
+        <button id="quickMusicPrevBtn" title="上一首" class="hidden sm:flex w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white items-center justify-center transition-all">⏮</button>
+        <button id="quickMusicBtn" class="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/15 text-xs text-zinc-300 transition-all" title="播放/暂停音乐">
           <div class="audio-waves-container">
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
             <div class="audio-bar"></div>
           </div>
-          <span id="quickMusicTitle" class="text-[11px] font-mono max-w-[70px] sm:max-w-[110px] truncate">第57次取消发送</span>
+          <span id="quickMusicTitle" class="hidden sm:inline text-[11px] font-mono max-w-[70px] sm:max-w-[110px] truncate">第57次取消发送</span>
         </button>
-        <button id="quickMusicNextBtn" title="下一首" class="w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white flex items-center justify-center transition-all">⏭</button>
+        <button id="quickMusicNextBtn" title="下一首" class="hidden sm:flex w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white items-center justify-center transition-all">⏭</button>
       </div>
 
       <!-- Celebrate Button -->
-      <button id="celebrateBtn" title="触发浪漫心动礼花" class="w-8 h-8 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-all active:scale-95">
-        <span class="text-sm">♥</span>
+      <button id="celebrateBtn" title="触发浪漫心动礼花" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-all active:scale-95 flex-shrink-0">
+        <span class="text-xs sm:text-sm">♥</span>
       </button>
 
       <!-- Settings / Customizer Drawer Button -->
-      <button id="openDrawerBtn" title="开启情侣相册个性化设置" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 flex items-center justify-center transition-all">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <button id="openDrawerBtn" title="开启情侣相册个性化设置" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 flex items-center justify-center transition-all flex-shrink-0">
+        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       </button>
     </div>
   </nav>
@@ -329,17 +329,8 @@
     </div>
   </div>
 
-  <!-- Non-Blocking Audio Notice Pill -->
-  <div id="entranceOverlay" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-all duration-700 pointer-events-auto cursor-pointer">
-    <div class="px-5 py-2.5 rounded-full bg-zinc-950/85 border border-rose-500/35 backdrop-blur-xl shadow-[0_0_30px_rgba(244,63,94,0.3)] flex items-center gap-3 hover:scale-105 transition-transform">
-      <span class="text-rose-400 text-sm animate-pulse">♫</span>
-      <span class="text-xs font-serif text-white tracking-wide">轻触任意处开启音乐 · 聆听《第57次取消发送》</span>
-      <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">开启声音</span>
-    </div>
-  </div>
-
-  <!-- High-Priority Native Audio Host -->
-  <audio id="mainBgmAudio" src="assets/audio/di57ciquxiaofasong.mp3" preload="auto" playsinline></audio>
+  <!-- High-Priority Native Audio Host (Auto-play Enabled) -->
+  <audio id="mainBgmAudio" src="assets/audio/di57ciquxiaofasong.mp3" preload="auto" autoplay playsinline webkit-playsinline></audio>
 
   
   <!-- =========================================================================
