@@ -841,13 +841,16 @@ class CelestialSphereGallery {
       tVals.push(t);
     }
 
+    const climaxIdx = this.photoMeshes.findIndex(m => m.userData && m.userData.isClimaxLetter);
+    const normalCount = Math.max(0, count - (climaxIdx >= 0 ? 1 : 0));
     const goldenAngle = Math.PI * (3.0 - Math.sqrt(5.0)); // 137.5077° 黄金角
 
     const targets = [];
+    const slots = [];
     const dummy = new THREE.Object3D();
 
-    for (let i = 0; i < count; i++) {
-      const u = (i + 0.5) / count;
+    for (let i = 0; i < normalCount; i++) {
+      const u = (i + 0.5) / normalCount;
       const targetA = u * totalArea;
 
       // 二分查找对应弧度参数 t
@@ -896,11 +899,26 @@ class CelestialSphereGallery {
       // 科学无重叠尺寸：卡片宽度 (110*0.62=68px) 小于相邻距离 (88px)，留有纯净边距，绝对无遮挡！
       const cardScale = isMobile ? 0.44 : 0.62;
 
-      targets.push({
+      slots.push({
         pos: dummy.position.clone(),
         rot: dummy.rotation.clone(),
         targetScale: cardScale
       });
+    }
+
+    // 回忆长信至尊金卡：在正前方心室中心尊贵浮空特写，悬浮于表面前侧，零穿模重叠
+    let slotIdx = 0;
+    for (let i = 0; i < count; i++) {
+      if (i === climaxIdx) {
+        targets.push({
+          pos: new THREE.Vector3(0, 1.0 * S + yOff, 16.0 * S * 0.94 + 85),
+          rot: new THREE.Euler(-0.025, 0, 0),
+          isClimax: true,
+          targetScale: isMobile ? 0.58 : 0.82
+        });
+      } else if (slots[slotIdx]) {
+        targets.push(slots[slotIdx++]);
+      }
     }
 
     // 全息核心与周边星轨尺寸动态校正
@@ -1176,13 +1194,24 @@ class CelestialSphereGallery {
     const isMobile = (this.container.clientWidth || window.innerWidth) < 768;
     const maxMeshes = 1000; // Load all 545+ media memories without omission
     
-    // 全部加载真实照片回忆，不注入长信卡片
-    let list = photos.filter(p => p.id !== 'desktop_video_feat' && !p.url?.includes('video_thumb_desktop') && !p.isClimaxLetter);
-    let displayPhotos = list;
-    if (list.length > maxMeshes) {
-      const step = Math.ceil(list.length / maxMeshes);
-      displayPhotos = list.filter((item, idx) => idx % step === 0);
+    // 加载全部真实照片与回忆长信至尊金卡
+    let list = photos.filter(p => p.id !== 'desktop_video_feat' && !p.url?.includes('video_thumb_desktop'));
+    const climaxItem = list.find(p => p.isClimaxLetter) || {
+      id: 'finale_climax_memory_letter',
+      isClimaxLetter: true,
+      title: '致亲爱的珍珠 · 时光长卷',
+      date: 'Forever & Beyond',
+      month: '2026-10',
+      desc: '阅读写给珍珠的深情长信：春风夏浪，秋叶冬雪，愿往后岁月依然紧紧牵着你的手。',
+      url: 'assets/photos/pic_001_202202.jpg'
+    };
+    const regularPhotos = list.filter(p => !p.isClimaxLetter);
+    let displayPhotos = regularPhotos;
+    if (regularPhotos.length > maxMeshes - 1) {
+      const step = Math.ceil(regularPhotos.length / (maxMeshes - 1));
+      displayPhotos = regularPhotos.filter((item, idx) => idx % step === 0);
     }
+    displayPhotos.push(climaxItem);
 
     const cardWidth = isMobile ? 115 : 110;
     const cardHeight = isMobile ? 155 : 148;

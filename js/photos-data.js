@@ -4382,6 +4382,15 @@ window.REAL_COUPLE_PHOTOS = [
     "url": "assets/photos/pic_530_202601.jpg",
     "title": "新春晨光・携手奔赴未来",
     "desc": "新一年的曙光升起，愿未来的岁月长河，岁岁年年皆有你。"
+  },
+  {
+    "id": "finale_climax_memory_letter",
+    "isClimaxLetter": true,
+    "title": "致亲爱的珍珠 · 时光长卷",
+    "date": "Forever & Beyond",
+    "month": "2026-10",
+    "desc": "阅读写给珍珠的深情长信：春风夏浪，秋叶冬雪，愿往后岁月依然紧紧牵着你的手。",
+    "url": "assets/photos/pic_001_202202.jpg"
   }
 ];
 window.REAL_MONTHS_SUMMARY = [

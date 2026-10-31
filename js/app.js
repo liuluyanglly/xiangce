@@ -715,6 +715,14 @@ class EternalApp {
 
             <div class="secure-img-shield"></div>
 
+            ${photo.isClimaxLetter ? `
+              <div class="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-amber-950/95 via-black/90 to-rose-950/95 border-2 border-amber-400/70 rounded-xl pointer-events-none z-10">
+                <span class="text-3xl text-amber-300 drop-shadow">✉</span>
+                <span class="text-xs font-serif font-bold text-amber-200 mt-1.5">致亲爱的珍珠 · 回忆长信</span>
+                <span class="text-[9px] text-amber-400/90 font-mono mt-0.5">点击直接展开深情长卷</span>
+              </div>
+            ` : ''}
+
             ${photo.isVideo ? `
 
               <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
