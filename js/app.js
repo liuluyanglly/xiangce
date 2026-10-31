@@ -706,12 +706,13 @@ class EternalApp {
       let photosHtml = '';
 
       groupPhotos.forEach((photo) => {
+        const thumbUrl = photo.thumb || photo.thumbUrl || (photo.url ? photo.url.replace('/photos/', '/thumbs/') : photo.url);
 
         photosHtml += `
 
           <div class="relative rounded-xl overflow-hidden aspect-[4/3] bg-zinc-900 border border-white/10 group cursor-pointer" onclick="if(window.eternalApp) window.eternalApp.showArtworkModal(${JSON.stringify(photo).replace(/"/g, '&quot;')});">
 
-            <img src="${photo.url}" alt="${photo.title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none" loading="lazy" />
+            <img src="${thumbUrl}" onerror="this.src='${photo.url}'" alt="${photo.title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none" loading="lazy" />
 
             <div class="secure-img-shield"></div>
 

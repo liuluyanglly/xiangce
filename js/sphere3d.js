@@ -1323,18 +1323,21 @@ class CelestialSphereGallery {
 
       frameGroup.userData.applyTexture = applyTexture;
 
+      const thumbUrl = item.thumb || item.thumbUrl || (item.url ? item.url.replace('/photos/', '/thumbs/') : item.url);
       if (item.isClimaxLetter) {
         const letterTex = this.createLetterCoverTexture();
         applyTexture(letterTex);
         this.climaxCardMesh = frameGroup;
       } else {
-        // Collect into prioritized loading queue (index < 48 gets Tier 1 immediate priority)
+        // Front-facing cards (or early indices) get Tier 1 immediate priority
         loadTaskQueue.push({
-          url: item.url,
+          url: thumbUrl,
+          fullUrl: item.url,
           index,
           item,
           applyTexture,
-          isTier1: index < 48
+          isFront: (index % 2 === 0),
+          isTier1: (index % 2 === 0) || (index < 64)
         });
       }
 
@@ -1439,9 +1442,15 @@ class CelestialSphereGallery {
     });
 
     // ---------------------------------------------------------
-    // Tiered Concurrent Texture Dispatcher (Zero Network Stalling)
+    // Ultra High-Speed Concurrent Texture Dispatcher (24x Parallel HTTP/2)
     // ---------------------------------------------------------
-    const CONCURRENCY = 8;
+    // Prioritize front-facing visible cards so initial scene is populated in milliseconds!
+    loadTaskQueue.sort((a, b) => {
+      if (a.isFront !== b.isFront) return a.isFront ? -1 : 1;
+      return a.index - b.index;
+    });
+
+    const CONCURRENCY = isMobile ? 16 : 28;
     let activeWorkers = 0;
     let queueIdx = 0;
 
@@ -1473,9 +1482,29 @@ class CelestialSphereGallery {
             },
             undefined,
             (err) => {
-              console.warn('Fallback texture for:', targetUrl);
-              const fallbackTex = this.createFallbackTexture(task.item.title, task.item.date);
-              onComplete(fallbackTex);
+              // Fallback to original full-res photo if thumbnail fails for any reason
+              if (task.fullUrl && targetUrl !== task.fullUrl) {
+                this.textureLoader.load(
+                  task.fullUrl,
+                  (fullTex) => {
+                    fullTex.encoding = THREE.sRGBEncoding;
+                    fullTex.minFilter = THREE.LinearFilter;
+                    fullTex.magFilter = THREE.LinearFilter;
+                    fullTex.generateMipmaps = false;
+                    fullTex.needsUpdate = true;
+                    this.textureCache.set(targetUrl, fullTex);
+                    onComplete(fullTex);
+                  },
+                  undefined,
+                  () => {
+                    const fallbackTex = this.createFallbackTexture(task.item.title, task.item.date);
+                    onComplete(fallbackTex);
+                  }
+                );
+              } else {
+                const fallbackTex = this.createFallbackTexture(task.item.title, task.item.date);
+                onComplete(fallbackTex);
+              }
             }
           );
         }
