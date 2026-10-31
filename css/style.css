@@ -891,19 +891,151 @@ body {
   -webkit-backdrop-filter: blur(26px) saturate(125%);
 }
 
+/* =========================================================
+   Luxury Celestial Nav Tabs (Apple Dynamic Island & Awwwards Standard)
+   ========================================================= */
 .nav-tab {
-  letter-spacing: 0.035em;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.46rem 0.96rem;
+  border-radius: 9999px;
   font-size: 12px;
-  padding: 0.48rem 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.035em;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
 }
 
+.nav-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.095);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1.5px);
+  box-shadow: 
+    0 6px 18px rgba(0, 0, 0, 0.42),
+    0 0 16px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.nav-tab:active {
+  transform: scale(0.95);
+}
+
+/* Active State: Jewel Aurora Shimmer with Multi-Layer Glow */
 .nav-tab.active {
-  color: #fff8f7;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.30), rgba(190, 112, 91, 0.18));
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.36) 0%, rgba(192, 132, 252, 0.28) 55%, rgba(251, 191, 36, 0.22) 100%);
+  border-color: rgba(251, 164, 185, 0.65);
   box-shadow:
-    0 0 0 1px rgba(251, 170, 157, 0.28) inset,
-    0 5px 20px rgba(244, 63, 94, 0.14);
-  text-shadow: 0 0 16px rgba(255, 220, 215, 0.38);
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(244, 63, 94, 0.35),
+    0 0 20px rgba(244, 63, 94, 0.42),
+    0 4px 14px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 12px rgba(255, 225, 230, 0.85);
+}
+
+/* Tab Micro Icons */
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+.tab-icon-heart {
+  color: #f43f5e;
+  filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6));
+}
+.nav-tab.active .tab-icon-heart {
+  animation: pulseHeart 1.8s ease-in-out infinite;
+}
+
+.tab-icon-wave {
+  color: #38bdf8;
+  font-size: 14px;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5));
+}
+
+.tab-icon-carousel {
+  font-size: 12px;
+  filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.4));
+}
+
+.tab-icon-sphere {
+  font-size: 12px;
+  filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.5));
+}
+
+.tab-icon-timeline {
+  font-size: 12px;
+  filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.5));
+}
+
+/* Exclusive VIP Climax Memory Letter Tab (Champagne Gold Lacquer) */
+.nav-tab-climax {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.38);
+  color: #fef08a;
+  box-shadow: 
+    0 2px 10px rgba(0, 0, 0, 0.3),
+    0 0 12px rgba(251, 191, 36, 0.15),
+    inset 0 1px 0 rgba(254, 240, 138, 0.25);
+}
+
+.nav-tab-climax:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.22) 0%, rgba(245, 158, 11, 0.14) 100%);
+  border-color: rgba(252, 211, 77, 0.65);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(251, 191, 36, 0.35),
+    inset 0 1px 0 rgba(254, 240, 138, 0.45);
+}
+
+.nav-tab-climax.active {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.42) 0%, rgba(244, 63, 94, 0.32) 100%) !important;
+  border-color: rgba(254, 240, 138, 0.85) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 0 24px rgba(251, 191, 36, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(254, 240, 138, 0.9) !important;
+}
+
+.tab-icon-letter {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
+}
+
+.climax-sparkle {
+  font-size: 10px;
+  color: #fde047;
+  margin-left: -2px;
+  animation: sparkleTwinkle 2.2s ease-in-out infinite;
+}
+
+@keyframes pulseHeart {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6)); }
+  50% { transform: scale(1.28); filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.9)); }
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0.6; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1.0; transform: scale(1.25) rotate(45deg); filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.9)); }
 }
 
 .couple-badge > div {
@@ -1176,11 +1308,18 @@ body {
     -webkit-overflow-scrolling: touch;
   }
   .nav-tab {
-    padding: 0.36rem 0.60rem;
+    padding: 0.35rem 0.58rem;
     font-size: 11px;
+    gap: 0.3rem;
     flex-shrink: 0;
     white-space: nowrap;
     border-radius: 9999px;
+  }
+  .tab-icon {
+    font-size: 11px;
+  }
+  .climax-sparkle {
+    display: none;
   }
   .island-nav-actions {
     flex-shrink: 0;

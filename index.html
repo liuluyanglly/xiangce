@@ -29,24 +29,31 @@
        4 大浪漫 3D 风格一键切换（单次点击即刻响应）
        ========================================================================= -->
   <nav class="island-nav">
-    <div class="island-nav-tabs flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar flex-1 min-w-0">
+    <div class="island-nav-tabs flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-0.5 no-scrollbar flex-1 min-w-0">
       <button class="nav-tab active" data-shape="heart" title="3D 立体旋转大爱心聚合照片墙">
-        <span>♥ 3D立体爱心</span>
+        <span class="tab-icon tab-icon-heart">♥</span>
+        <span class="tab-label">3D立体爱心</span>
       </button>
       <button class="nav-tab" data-shape="wave" title="545 张珍藏回忆全量铺开的 3D 照片海浪墙 · 神经网络突触随波光流动">
-        <span>时光波浪</span>
+        <span class="tab-icon tab-icon-wave">≋</span>
+        <span class="tab-label">时光波浪</span>
       </button>
       <button class="nav-tab" data-shape="carousel" title="3D 时尚展厅时光回廊与奢华镜面倒影（36 张一组，共 16 组流转）">
-        <span>时光回廊</span>
+        <span class="tab-icon tab-icon-carousel">🎠</span>
+        <span class="tab-label">时光回廊</span>
       </button>
       <button class="nav-tab" data-shape="sphere" title="3D 斐波那契记忆星球">
-        <span>记忆星球</span>
+        <span class="tab-icon tab-icon-sphere">🪐</span>
+        <span class="tab-label">记忆星球</span>
       </button>
-      <button class="nav-tab" id="navClimaxLetterBtn" title="阅读关于我们的回忆长信">
-        <span>回忆长信</span>
+      <button class="nav-tab nav-tab-climax" id="navClimaxLetterBtn" title="阅读关于我们的回忆长信">
+        <span class="tab-icon tab-icon-letter">✉</span>
+        <span class="tab-label">回忆长信</span>
+        <span class="climax-sparkle">✦</span>
       </button>
       <button class="nav-tab" id="navStorylineBtn" data-mode="storyline" title="浏览按月份时间轴排列的照片">
-        <span>时光足迹</span>
+        <span class="tab-icon tab-icon-timeline">⏳</span>
+        <span class="tab-label">时光足迹</span>
       </button>
     </div>
 
