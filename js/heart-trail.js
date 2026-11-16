@@ -1,7 +1,7 @@
 /**
- * EternalEcho - Heart Trail & Fullscreen Polaroid Scatter Engine
- * 照片一张一张出现组成爱心，随后满屏散开铺满屏幕
- * Inspired by Douyin Python Heart Popup Memo Cards + Romantic Polaroid Memories
+ * EternalEcho - Heart Trail & Fullscreen Polaroid Scatter Engine (Ultra-Dense 140+ Photo Edition)
+ * 照片一张一张弹出组成双层立体瀑布大爱心，并散落桌面便签，随后满屏散开铺满整个屏幕
+ * 深度复刻抖音爆款 Python 爱心便签弹窗视频质感
  */
 
 class HeartTrailGallery {
@@ -19,18 +19,18 @@ class HeartTrailGallery {
     this.toggleText = document.getElementById('heartTrailToggleText');
     this.btnShuffle = document.getElementById('btnHeartTrailShuffle');
 
-    this.cardCount = window.innerWidth < 640 ? 44 : 52;
-    this.cardWidth = window.innerWidth < 640 ? 88 : 118;
-    this.cardHeight = window.innerWidth < 640 ? 116 : 150;
+    this.cardCount = window.innerWidth < 640 ? 100 : 140;
+    this.cardWidth = window.innerWidth < 640 ? 76 : 102;
+    this.cardHeight = window.innerWidth < 640 ? 100 : 132;
 
     this.cards = [];
     this.heartCoords = [];
     this.scatterCoords = [];
     this.currentState = 'idle'; // 'idle' | 'building' | 'heart' | 'scattered'
     this.activeTimers = [];
-    this.activeTweens = [];
     this.selectedPhotos = [];
 
+    // 抖音同款甜蜜文案便签池
     this.memoTitles = [
       '别熬夜了呀 🌙',
       '保持好心情 🌸',
@@ -57,17 +57,23 @@ class HeartTrailGallery {
       '浪漫至死不渝 🌹',
       '甜在心头，暖在日常 🍓',
       '有你在，便心安 ☁️',
-      '始于初见，止于终老 🕊️'
+      '始于初见，止于终老 🕊️',
+      '春祺夏安，秋绥冬禧 🌿',
+      '心若相知，无言也暖 ☕',
+      '我的女孩天下第一好 👑',
+      '平淡日子里的刺眼光芒 ☀️'
     ];
 
+    // 多彩糖果色窗口标题栏主题
     this.themes = [
-      { barBg: 'rgba(244, 63, 94, 0.28)', borderColor: 'rgba(251, 113, 133, 0.55)', dot: '#fb7185', glow: 'rgba(244,63,94,0.35)' },
-      { barBg: 'rgba(236, 72, 153, 0.28)', borderColor: 'rgba(244, 114, 182, 0.55)', dot: '#f472b6', glow: 'rgba(236,72,153,0.35)' },
-      { barBg: 'rgba(168, 85, 247, 0.28)', borderColor: 'rgba(192, 132, 252, 0.55)', dot: '#c084fc', glow: 'rgba(168,85,247,0.35)' },
-      { barBg: 'rgba(56, 189, 248, 0.28)', borderColor: 'rgba(125, 211, 252, 0.55)', dot: '#38bdf8', glow: 'rgba(56,189,248,0.35)' },
-      { barBg: 'rgba(52, 211, 153, 0.28)', borderColor: 'rgba(110, 231, 183, 0.55)', dot: '#34d399', glow: 'rgba(52,211,153,0.35)' },
-      { barBg: 'rgba(251, 191, 36, 0.28)', borderColor: 'rgba(252, 211, 77, 0.55)', dot: '#fbbf24', glow: 'rgba(251,191,36,0.35)' },
-      { barBg: 'rgba(251, 146, 60, 0.28)', borderColor: 'rgba(253, 186, 116, 0.55)', dot: '#fb923c', glow: 'rgba(251,146,60,0.35)' },
+      { barBg: 'rgba(244, 63, 94, 0.32)', borderColor: 'rgba(251, 113, 133, 0.65)', dot: '#fb7185', glow: 'rgba(244,63,94,0.4)' }, // 珊瑚粉
+      { barBg: 'rgba(236, 72, 153, 0.32)', borderColor: 'rgba(244, 114, 182, 0.65)', dot: '#f472b6', glow: 'rgba(236,72,153,0.4)' }, // 蜜桃粉
+      { barBg: 'rgba(168, 85, 247, 0.32)', borderColor: 'rgba(192, 132, 252, 0.65)', dot: '#c084fc', glow: 'rgba(168,85,247,0.4)' }, // 香芋紫
+      { barBg: 'rgba(56, 189, 248, 0.32)', borderColor: 'rgba(125, 211, 252, 0.65)', dot: '#38bdf8', glow: 'rgba(56,189,248,0.4)' }, // 天空蓝
+      { barBg: 'rgba(52, 211, 153, 0.32)', borderColor: 'rgba(110, 231, 183, 0.65)', dot: '#34d399', glow: 'rgba(52,211,153,0.4)' }, // 薄荷绿
+      { barBg: 'rgba(251, 191, 36, 0.32)', borderColor: 'rgba(252, 211, 77, 0.65)', dot: '#fbbf24', glow: 'rgba(251,191,36,0.4)' }, // 柠檬黄
+      { barBg: 'rgba(251, 146, 60, 0.32)', borderColor: 'rgba(253, 186, 116, 0.65)', dot: '#fb923c', glow: 'rgba(251,146,60,0.4)' }, // 晚霞橙
+      { barBg: 'rgba(244, 114, 182, 0.32)', borderColor: 'rgba(249, 168, 212, 0.65)', dot: '#f472b6', glow: 'rgba(244,114,182,0.4)' }  // 樱花粉
     ];
 
     this.init();
@@ -105,7 +111,7 @@ class HeartTrailGallery {
       });
     }
 
-    // Debounced Resize handler
+    // 屏幕旋转或视口缩放时平滑重排
     let resizeTimer = null;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
@@ -143,7 +149,7 @@ class HeartTrailGallery {
     const sampled = [];
     const usedIndices = new Set();
 
-    // Ensure broad coverage across time: pick evenly spaced samples first, then fill
+    // 确保时间跨度全覆盖：先均匀分段抽取，再随机补齐
     const step = Math.max(1, Math.floor(total / count));
     for (let i = 0; i < count && sampled.length < count; i++) {
       let idx = (i * step + Math.floor(Math.random() * step)) % total;
@@ -153,6 +159,12 @@ class HeartTrailGallery {
       usedIndices.add(idx);
       sampled.push(allPhotos[idx]);
     }
+
+    while (sampled.length < count) {
+      const idx = Math.floor(Math.random() * total);
+      sampled.push(allPhotos[idx]);
+    }
+
     return sampled;
   }
 
@@ -164,29 +176,36 @@ class HeartTrailGallery {
     const w = window.innerWidth;
     const h = window.innerHeight;
     const isMobile = w < 640;
-    this.cardCount = isMobile ? 44 : 52;
-    this.cardWidth = isMobile ? 88 : 118;
-    this.cardHeight = isMobile ? 116 : 150;
+    this.cardCount = isMobile ? 100 : 140;
+    this.cardWidth = isMobile ? 76 : 102;
+    this.cardHeight = isMobile ? 100 : 132;
 
     const count = this.cardCount;
 
-    // --- 1. Heart Trajectory Coordinates ---
-    // Parametric Heart: x = 16 sin^3(t), y = -(13 cos(t) - 5 cos(2t) - 2 cos(3t) - cos(4t))
+    // --- 1. 双层密集立体爱心 + 桌面边缘浪漫便签 (复刻抖音视频) ---
+    // 结构规划：
+    // Outer Ring (60%): 外层超密集心形线（如 84 张），每张重叠 70% 形成阶梯立体厚边
+    // Inner Ring (30%): 内层同心环绕心形线（如 42 张），填充中层厚度
+    // Desktop Satellites (10%): 桌面四周散落的便签（如 14 张），点缀四周
     const cx = w / 2;
-    // Position center slightly above true center to allow breathing room for bottom controls
-    const cy = isMobile ? (h / 2 - 15) : (h / 2 - 10);
+    const cy = isMobile ? (h / 2 - 12) : (h / 2 - 10);
 
-    const availW = w - this.cardWidth - (isMobile ? 20 : 60);
-    const availH = h - this.cardHeight - (isMobile ? 150 : 180);
+    const availW = w - this.cardWidth - (isMobile ? 16 : 48);
+    const availH = h - this.cardHeight - (isMobile ? 140 : 160);
 
     const scaleX = availW / 33;
     const scaleY = availH / 32;
     const scale = Math.min(scaleX, scaleY);
 
+    const outerCount = Math.round(count * 0.60);
+    const innerCount = Math.round(count * 0.30);
+    const satCount = count - outerCount - innerCount;
+
     this.heartCoords = [];
-    for (let i = 0; i < count; i++) {
-      // Loop clockwise starting from top cleft
-      const t = (i / count) * Math.PI * 2;
+
+    // A. 外层厚重爱心轮廓
+    for (let i = 0; i < outerCount; i++) {
+      const t = (i / outerCount) * Math.PI * 2;
       const sinT = Math.sin(t);
       const rawX = 16 * Math.pow(sinT, 3);
       const rawY = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
@@ -194,7 +213,6 @@ class HeartTrailGallery {
       const x = cx + rawX * scale - this.cardWidth / 2;
       const y = cy + rawY * scale - this.cardHeight / 2;
 
-      // Card tilt: gentle curve tangent alignment (-18 deg ~ +18 deg)
       const baseRot = Math.max(-18, Math.min(18, Math.cos(t) * 16));
       const rot = baseRot + (Math.random() - 0.5) * 4;
 
@@ -206,24 +224,75 @@ class HeartTrailGallery {
       });
     }
 
-    // --- 2. Fullscreen Scatter Coordinates ---
-    const padTop = isMobile ? 80 : 90;
-    const padBottom = isMobile ? 85 : 95;
-    const padSide = isMobile ? 12 : 24;
+    // B. 内层同心爱心
+    const innerScale = scale * 0.76;
+    for (let i = 0; i < innerCount; i++) {
+      const t = (i / innerCount) * Math.PI * 2;
+      const sinT = Math.sin(t);
+      const rawX = 16 * Math.pow(sinT, 3);
+      const rawY = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+
+      const x = cx + rawX * innerScale - this.cardWidth / 2;
+      const y = (cy + 10) + rawY * innerScale - this.cardHeight / 2;
+
+      const baseRot = Math.max(-16, Math.min(16, Math.cos(t) * 14));
+      const rot = baseRot + (Math.random() - 0.5) * 5;
+
+      this.heartCoords.push({
+        x: Math.round(x),
+        y: Math.round(y),
+        rot: Math.round(rot * 10) / 10,
+        zIndex: 100 + i
+      });
+    }
+
+    // C. 桌面四周散落的便签 (抖音原视频桌面背景效果)
+    const satAnchors = [
+      // Top Left
+      { x: 20, y: 80 }, { x: 35, y: 190 }, { x: 120, y: 95 },
+      // Top Right
+      { x: w - this.cardWidth - 25, y: 85 }, { x: w - this.cardWidth - 40, y: 195 }, { x: w - this.cardWidth - 130, y: 95 },
+      // Mid Left & Right
+      { x: 18, y: h / 2 - 30 }, { x: w - this.cardWidth - 18, y: h / 2 - 30 },
+      // Bottom Left & Right
+      { x: 25, y: h - this.cardHeight - 95 }, { x: 135, y: h - this.cardHeight - 90 },
+      { x: w - this.cardWidth - 30, y: h - this.cardHeight - 95 }, { x: w - this.cardWidth - 140, y: h - this.cardHeight - 90 },
+      // Top Center & Bottom Center
+      { x: cx - 180, y: 80 }, { x: cx + 180 - this.cardWidth, y: 80 }
+    ];
+
+    for (let i = 0; i < satCount; i++) {
+      const anchor = satAnchors[i % satAnchors.length];
+      const jx = (Math.random() - 0.5) * 20;
+      const jy = (Math.random() - 0.5) * 20;
+      const rot = (Math.random() - 0.5) * 22;
+
+      this.heartCoords.push({
+        x: Math.round(Math.max(10, Math.min(w - this.cardWidth - 10, anchor.x + jx))),
+        y: Math.round(Math.max(75, Math.min(h - this.cardHeight - 85, anchor.y + jy))),
+        rot: Math.round(rot * 10) / 10,
+        zIndex: 200 + i
+      });
+    }
+
+    // --- 2. 满屏铺满散开坐标 (140 张密集网格覆盖全屏，无死角铺满) ---
+    const padTop = isMobile ? 75 : 85;
+    const padBottom = isMobile ? 80 : 90;
+    const padSide = isMobile ? 8 : 16;
 
     const scatterW = w - padSide * 2;
     const scatterH = h - padTop - padBottom;
 
     const ratio = scatterW / Math.max(1, scatterH);
     let cols = Math.round(Math.sqrt(count * ratio));
-    cols = Math.max(isMobile ? 4 : 6, Math.min(isMobile ? 6 : 10, cols));
+    cols = Math.max(isMobile ? 8 : 12, Math.min(isMobile ? 10 : 16, cols));
     const rows = Math.ceil(count / cols);
 
     const cellW = scatterW / cols;
     const cellH = scatterH / rows;
 
     const slots = Array.from({ length: cols * rows }, (_, idx) => idx);
-    // Fisher-Yates shuffle slots for natural random dispersal
+    // Fisher-Yates 均匀打散，使向外发散更自然
     for (let i = slots.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [slots[i], slots[j]] = [slots[j], slots[i]];
@@ -238,12 +307,12 @@ class HeartTrailGallery {
       const baseX = padSide + c * cellW + (cellW - this.cardWidth) / 2;
       const baseY = padTop + r * cellH + (cellH - this.cardHeight) / 2;
 
-      const jitterX = (Math.random() - 0.5) * (cellW * 0.44);
-      const jitterY = (Math.random() - 0.5) * (cellH * 0.44);
+      const jitterX = (Math.random() - 0.5) * (cellW * 0.45);
+      const jitterY = (Math.random() - 0.5) * (cellH * 0.45);
 
-      const x = Math.max(8, Math.min(w - this.cardWidth - 8, baseX + jitterX));
-      const y = Math.max(padTop - 10, Math.min(h - this.cardHeight - padBottom + 10, baseY + jitterY));
-      const rot = (Math.random() - 0.5) * 26;
+      const x = Math.max(4, Math.min(w - this.cardWidth - 4, baseX + jitterX));
+      const y = Math.max(padTop - 12, Math.min(h - this.cardHeight - padBottom + 12, baseY + jitterY));
+      const rot = (Math.random() - 0.5) * 28;
 
       this.scatterCoords.push({
         x: Math.round(x),
@@ -291,7 +360,7 @@ class HeartTrailGallery {
       </div>
     `;
 
-    // Attach Interactive Drag & Click handlers
+    // 绑定拖拽与点击大图
     this.attachCardInteractions(card, photo);
 
     return card;
@@ -306,7 +375,6 @@ class HeartTrailGallery {
     let hasMoved = false;
 
     const onPointerDown = (e) => {
-      // Don't drag if building animation is still in progress
       if (this.currentState === 'building') return;
 
       isDragging = true;
@@ -314,12 +382,11 @@ class HeartTrailGallery {
       startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
       startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
 
-      // Read current transform coordinates
       initialX = gsap.getProperty(card, 'x') || 0;
       initialY = gsap.getProperty(card, 'y') || 0;
 
       card.classList.add('is-dragging');
-      card.style.zIndex = '999';
+      card.style.zIndex = '9999';
 
       window.addEventListener('pointermove', onPointerMove, { passive: false });
       window.addEventListener('pointerup', onPointerUp);
@@ -355,7 +422,6 @@ class HeartTrailGallery {
       window.removeEventListener('pointercancel', onPointerUp);
 
       if (!hasMoved) {
-        // Pure click: trigger full-res artwork modal preview!
         if (this.app && typeof this.app.showArtworkModal === 'function') {
           this.app.showArtworkModal(photo);
         }
@@ -372,30 +438,30 @@ class HeartTrailGallery {
     this.stage.innerHTML = '';
     this.cards = [];
 
-    if (this.selectedPhotos.length === 0 || forceRebuild) {
+    this.computeCoordinates();
+
+    if (this.selectedPhotos.length === 0 || forceRebuild || this.selectedPhotos.length < this.cardCount) {
       this.selectedPhotos = this.pickRandomPhotos(this.cardCount);
     }
 
-    this.computeCoordinates();
     this.currentState = 'building';
 
-    // Update UI Status
-    if (this.statusText) this.statusText.textContent = '心动轨迹编织中...';
+    // 状态栏更新
+    if (this.statusText) this.statusText.textContent = '心动轨迹生成中...';
     if (this.counterEl) this.counterEl.textContent = `0 / ${this.cardCount}`;
     if (this.toggleText) this.toggleText.textContent = '散开铺满';
     if (this.toggleIcon) this.toggleIcon.textContent = '✦';
 
-    // 1. Create and stage all card DOM nodes invisibly at heart coordinates
+    // 1. 创建所有卡片并初始隐藏在坐标处
     for (let i = 0; i < this.cardCount; i++) {
       const photo = this.selectedPhotos[i % this.selectedPhotos.length];
       const card = this.createCardElement(photo, i);
       const coord = this.heartCoords[i];
 
-      // Pre-position via GSAP
       gsap.set(card, {
         x: coord.x,
         y: coord.y,
-        rotation: coord.rot + 22,
+        rotation: coord.rot + 25,
         scale: 0,
         opacity: 0,
         zIndex: coord.zIndex
@@ -405,8 +471,8 @@ class HeartTrailGallery {
       this.cards.push(card);
     }
 
-    // 2. Sequential pop-in animation: one card by one, forming the heart shape
-    const popInterval = 65; // ms between each card popup
+    // 2. 疾速流畅逐张弹出 (26ms 极速快节奏，3.6 秒全量筑成 140 张爱心瀑布)
+    const popInterval = 26;
     for (let i = 0; i < this.cardCount; i++) {
       const card = this.cards[i];
       const coord = this.heartCoords[i];
@@ -414,20 +480,18 @@ class HeartTrailGallery {
       const timer = setTimeout(() => {
         if (this.currentState !== 'building') return;
 
-        // Pop in with bouncy spring ease
         gsap.to(card, {
           scale: 1,
           opacity: 1,
           rotation: coord.rot,
-          duration: 0.42,
-          ease: 'back.out(1.8)'
+          duration: 0.36,
+          ease: 'back.out(1.9)'
         });
 
         if (this.counterEl) {
           this.counterEl.textContent = `${i + 1} / ${this.cardCount}`;
         }
 
-        // When the final card arrives, complete the heart!
         if (i === this.cardCount - 1) {
           this.onHeartCompleted();
         }
@@ -441,36 +505,36 @@ class HeartTrailGallery {
     this.currentState = 'heart';
 
     if (this.statusText) {
-      this.statusText.textContent = '💖 52 颗心动瞬间已聚合为爱心';
+      this.statusText.textContent = `💖 ${this.cardCount} 颗心动瞬间已聚合为爱心`;
     }
     if (this.toggleText) this.toggleText.textContent = '散开铺满';
     if (this.toggleIcon) this.toggleIcon.textContent = '✦';
 
-    // Heartbeat Surge: The whole heart does 2 synchronized gentle heartbeats
+    // 双重心跳脉动，极具视觉冲击力
     gsap.to(this.cards, {
       scale: 1.05,
-      duration: 0.24,
+      duration: 0.22,
       yoyo: true,
       repeat: 1,
       ease: 'power1.inOut'
     });
 
-    // Confetti celebration burst
+    // 浪漫礼花绽放
     if (typeof confetti === 'function') {
       confetti({
-        particleCount: 38,
-        spread: 68,
+        particleCount: 45,
+        spread: 75,
         origin: { x: 0.5, y: 0.46 },
-        colors: ['#f43f5e', '#fb7185', '#fda4af', '#f472b6', '#fbbf24']
+        colors: ['#f43f5e', '#fb7185', '#fda4af', '#f472b6', '#fbbf24', '#c084fc']
       });
     }
 
-    // "然后散开铺满整个屏幕": After a romantic 1.4s delay, automatically scatter!
+    // 停留 1.3 秒后，自动触发“散开铺满整个屏幕”
     const autoScatterTimer = setTimeout(() => {
       if (this.currentState === 'heart') {
         this.scatterFullScreen();
       }
-    }, 1400);
+    }, 1300);
 
     this.activeTimers.push(autoScatterTimer);
   }
@@ -480,12 +544,12 @@ class HeartTrailGallery {
     this.currentState = 'scattered';
 
     if (this.statusText) {
-      this.statusText.textContent = '✨ 记忆已满屏散开 · 点击任意照片查看详情';
+      this.statusText.textContent = `✨ ${this.cardCount} 张美好回忆已铺满屏幕 · 可自由拖拽或点击放大`;
     }
     if (this.toggleText) this.toggleText.textContent = '聚合为心';
     if (this.toggleIcon) this.toggleIcon.textContent = '♥';
 
-    // Staggered scatter animation: cards fly outward to fill the entire screen
+    // 140 张照片满屏爆发式散开，铺满整个视口每一个角落
     this.cards.forEach((card, i) => {
       const sc = this.scatterCoords[i];
       if (!sc) return;
@@ -496,8 +560,8 @@ class HeartTrailGallery {
         rotation: sc.rot,
         scale: 1,
         opacity: 1,
-        duration: 1.15 + Math.random() * 0.35,
-        delay: (i / this.cardCount) * 0.45,
+        duration: 1.1 + Math.random() * 0.35,
+        delay: (i / this.cardCount) * 0.4,
         ease: 'power3.out',
         onComplete: () => {
           card.style.zIndex = sc.zIndex;
@@ -511,12 +575,11 @@ class HeartTrailGallery {
     this.currentState = 'heart';
 
     if (this.statusText) {
-      this.statusText.textContent = '💖 爱心已重新聚合 · 刘禄洋 ♥ 尹珍珠';
+      this.statusText.textContent = `💖 爱心已重新聚合 · 刘禄洋 ♥ 尹珍珠`;
     }
     if (this.toggleText) this.toggleText.textContent = '散开铺满';
     if (this.toggleIcon) this.toggleIcon.textContent = '✦';
 
-    // Smoothly fly back from current scattered positions into the heart contour
     this.cards.forEach((card, i) => {
       const hc = this.heartCoords[i];
       if (!hc) return;
@@ -527,8 +590,8 @@ class HeartTrailGallery {
         rotation: hc.rot,
         scale: 1,
         opacity: 1,
-        duration: 1.05 + Math.random() * 0.3,
-        delay: (i / this.cardCount) * 0.35,
+        duration: 1.0 + Math.random() * 0.28,
+        delay: (i / this.cardCount) * 0.32,
         ease: 'power3.inOut',
         onComplete: () => {
           card.style.zIndex = hc.zIndex;
