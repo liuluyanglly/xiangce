@@ -47,6 +47,11 @@
         <span class="tab-label">记忆星球</span>
       </button>
 
+      <button class="nav-tab" id="navHeartTrailBtn" data-mode="heart-trail" title="照片卡片逐张弹出连成爱心，随后满屏散开浪漫绽放">
+        <span class="tab-icon tab-icon-trail">💖</span>
+        <span class="tab-label">心动弹窗</span>
+      </button>
+
       <button class="nav-tab nav-tab-climax" id="navClimaxLetterBtn" title="阅读关于我们的回忆长信">
         <span class="tab-icon tab-icon-letter">✉</span>
         <span class="tab-label">回忆长信</span>
@@ -191,6 +196,42 @@
       <div id="storylineMonthsContainer" class="space-y-12">
         <!-- Dynamically rendered monthly chapters and photo grids -->
       </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEWPORT 3: Heart Trail & Polaroid Fullscreen Scatter (心动弹窗 · 逐张成心与满屏散开)
+       ========================================================================= -->
+  <section id="viewportHeartTrail" class="mode-viewport fixed inset-0 w-full h-full z-20 overflow-hidden hidden-view select-none">
+    <!-- Ambient Romantic Vignette & Glow Background -->
+    <div class="heart-trail-bg absolute inset-0 pointer-events-none"></div>
+
+    <!-- Status & Progress Badge -->
+    <div id="heartTrailHeader" class="absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none text-center transition-all duration-500">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-950/85 border border-rose-500/35 backdrop-blur-xl shadow-[0_0_25px_rgba(244,63,94,0.3)]">
+        <span class="text-rose-400 text-sm animate-pulse">💖</span>
+        <span id="heartTrailStatusText" class="text-xs font-serif text-white tracking-wide">心动轨迹编织中...</span>
+        <span id="heartTrailCounter" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">0 / 52</span>
+      </div>
+    </div>
+
+    <!-- Heart Cards Stage -->
+    <div id="heartTrailStage" class="w-full h-full relative overflow-hidden"></div>
+
+    <!-- Floating Control Dock -->
+    <div id="heartTrailControls" class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 p-1.5 rounded-full bg-zinc-950/85 border border-white/10 backdrop-blur-xl shadow-2xl transition-all duration-300">
+      <button id="btnHeartTrailReplay" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-medium transition-all active:scale-95" title="重新播放爱心轨迹动画">
+        <span class="text-xs">↺</span>
+        <span>重播心动</span>
+      </button>
+      <button id="btnHeartTrailToggleState" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 text-xs font-medium transition-all active:scale-95" title="在爱心汇聚与满屏散开之间切换">
+        <span id="heartTrailToggleIcon" class="text-xs">✦</span>
+        <span id="heartTrailToggleText">聚合为心</span>
+      </button>
+      <button id="btnHeartTrailShuffle" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 text-xs font-medium transition-all active:scale-95" title="随机更换一组美好回忆">
+        <span class="text-xs">🔀</span>
+        <span>换一批照片</span>
+      </button>
     </div>
   </section>
 
@@ -416,6 +457,7 @@
   <script src="js/neural-synapse.js"></script>
   <script src="js/sphere3d.js?v=20261027_v2"></script>
   <script src="js/quantum-heart.js"></script>
+  <script src="js/heart-trail.js?v=20261116_v1"></script>
   <script src="js/app.js?v=20261027_v2"></script>
 </body>
 </html>

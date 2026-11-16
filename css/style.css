@@ -1415,3 +1415,191 @@ body {
     animation: none;
   }
 }
+
+
+/* ==========================================================================
+   Heart Trail & Polaroid Fullscreen Scatter Styles (心动弹窗与满屏散开)
+   ========================================================================== */
+#viewportHeartTrail {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 25;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, rgba(26, 12, 22, 0.95) 0%, rgba(5, 5, 8, 0.98) 100%);
+}
+
+#viewportHeartTrail:not(.hidden-view) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 25 !important;
+}
+
+.heart-trail-bg {
+  background-image: 
+    radial-gradient(circle at 50% 45%, rgba(244, 63, 94, 0.14) 0%, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(251, 191, 36, 0.07) 0%, transparent 40%);
+}
+
+.heart-trail-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(16, 16, 24, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.65), 0 0 12px rgba(244, 63, 94, 0.12);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  transform-origin: center center;
+  transition: box-shadow 0.25s var(--ease-spring), border-color 0.25s, filter 0.25s;
+}
+
+.heart-trail-card:hover {
+  cursor: pointer;
+  border-color: rgba(244, 63, 94, 0.85) !important;
+  box-shadow: 0 20px 45px -5px rgba(244, 63, 94, 0.5), 0 0 25px rgba(244, 63, 94, 0.35) !important;
+  filter: brightness(1.08);
+  z-index: 998 !important;
+}
+
+.heart-trail-card.is-dragging {
+  cursor: grabbing;
+  border-color: #f43f5e !important;
+  box-shadow: 0 25px 60px -5px rgba(244, 63, 94, 0.65), 0 0 35px rgba(244, 63, 94, 0.5) !important;
+  transform: scale(1.08) !important;
+  z-index: 1000 !important;
+}
+
+/* Card Titlebar */
+.card-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  height: 24px;
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.card-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.card-dots .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.card-title-text {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #f3f4f6;
+  max-width: 76px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.card-pin {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* Card Image Box */
+.card-img-box {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: #09090d;
+  overflow: hidden;
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  transition: transform 0.4s ease;
+}
+
+.heart-trail-card:hover .card-img {
+  transform: scale(1.06);
+}
+
+.card-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.card-hover-overlay span {
+  font-size: 9px;
+  color: #fff;
+  background: rgba(244, 63, 94, 0.85);
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.heart-trail-card:hover .card-hover-overlay {
+  opacity: 1;
+}
+
+/* Card Footer */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  height: 20px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 8.5px;
+  color: #a1a1aa;
+}
+
+.card-date {
+  font-family: monospace;
+  max-width: 60px;
+}
+
+.card-badge {
+  color: #f43f5e;
+  font-weight: 600;
+  font-size: 8px;
+}
+
+/* Nav Tab Pulse for Heart Trail */
+.tab-icon-trail {
+  font-size: 13px;
+  filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.7));
+}
+.nav-tab.active .tab-icon-trail {
+  animation: pulseHeart 1.6s ease-in-out infinite;
+}

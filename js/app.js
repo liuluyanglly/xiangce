@@ -306,6 +306,8 @@ class EternalApp {
 
     this.flipbook = null;
 
+    this.heartTrailGallery = null;
+
     // Sequential Audio Playlist System (Auto-Chained: 《第57次取消发送》 -> 《理想三旬》 -> 《晴天》 -> 视频原声)
     this.playlist = [
       {
@@ -499,7 +501,14 @@ class EternalApp {
 
     }
 
-// 5. AI Vision Gesture Engine removed
+    // 5. Initialize Heart Trail & Fullscreen Polaroid Scatter Engine
+    if (document.getElementById('viewportHeartTrail') && typeof HeartTrailGallery !== 'undefined') {
+      try {
+        this.heartTrailGallery = new HeartTrailGallery(this);
+      } catch (e) {
+        console.warn('Heart trail gallery note:', e);
+      }
+    }
 
     // 6. Build Storyline Months & Month Filter Pills
 
@@ -1016,6 +1025,20 @@ class EternalApp {
 
         }
 
+      } else if (this.currentMode === 'heart-trail') {
+
+        const trailTab = document.getElementById('navHeartTrailBtn');
+
+        if (trailTab) {
+
+          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+          trailTab.classList.add('active');
+
+          return;
+
+        }
+
       }
 
       const curShape = (this.sphereGallery && this.sphereGallery.currentShape) || 'heart';
@@ -1128,6 +1151,8 @@ class EternalApp {
 
     const storylineEl = document.getElementById('viewportStoryline');
 
+    const heartTrailEl = document.getElementById('viewportHeartTrail');
+
     // Always securely close any open fullscreen popups when switching viewports
 
     this.hideArtworkModal();
@@ -1139,6 +1164,18 @@ class EternalApp {
       if (storylineEl) {
 
         storylineEl.classList.add('hidden-view');
+
+      }
+
+      if (heartTrailEl) {
+
+        heartTrailEl.classList.add('hidden-view');
+
+      }
+
+      if (this.heartTrailGallery) {
+
+        this.heartTrailGallery.deactivate();
 
       }
 
@@ -1164,6 +1201,18 @@ class EternalApp {
 
       }
 
+      if (heartTrailEl) {
+
+        heartTrailEl.classList.add('hidden-view');
+
+      }
+
+      if (this.heartTrailGallery) {
+
+        this.heartTrailGallery.deactivate();
+
+      }
+
       if (storylineEl) {
 
         storylineEl.classList.remove('hidden-view');
@@ -1175,6 +1224,38 @@ class EternalApp {
           gsap.fromTo(storylineEl, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' });
 
         }
+
+      }
+
+    } else if (mode === 'heart-trail') {
+
+      if (galaxyEl) {
+
+        galaxyEl.classList.add('hidden-view');
+
+      }
+
+      if (storylineEl) {
+
+        storylineEl.classList.add('hidden-view');
+
+      }
+
+      if (heartTrailEl) {
+
+        heartTrailEl.classList.remove('hidden-view');
+
+        if (typeof gsap !== 'undefined') {
+
+          gsap.fromTo(heartTrailEl, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: 'power2.out' });
+
+        }
+
+      }
+
+      if (this.heartTrailGallery) {
+
+        this.heartTrailGallery.activate();
 
       }
 
@@ -2273,6 +2354,20 @@ class EternalApp {
             }
 
             this.switchMode('storyline');
+
+          } else if (mode === 'heart-trail' || tabId === 'navHeartTrailBtn') {
+
+            if (carouselDock) {
+
+              carouselDock.classList.remove('opacity-100', 'pointer-events-auto');
+
+              carouselDock.classList.add('opacity-0', 'pointer-events-none');
+
+              carouselDock.classList.add('hidden');
+
+            }
+
+            this.switchMode('heart-trail');
 
           }
 
