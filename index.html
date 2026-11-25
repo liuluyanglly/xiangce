@@ -7,13 +7,7 @@
   
   <!-- Offline-Ready Static Stylesheet (Zero Network Blocking, 0ms Instant Load) -->
   <link rel="stylesheet" href="css/tailwind.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20261027_v2">
-  
-  <!-- Offline Core 3D & Animation Libraries (Locally Hosted in js/vendor) -->
-  <script src="js/vendor/three.min.js"></script>
-  <script src="js/vendor/OrbitControls.js"></script>
-  <script src="js/vendor/gsap.min.js"></script>
-  <script src="js/vendor/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="css/style.css?v=20261125c">
 </head>
 <body class="relative bg-[#030305] text-zinc-100 min-h-[100dvh] overflow-x-hidden">
 
@@ -65,7 +59,7 @@
 
     <div class="island-nav-actions flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
       <!-- Music Play/Pause Quick Pill & Sequential Playlist Controller -->
-      <div class="flex items-center gap-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+      <div class="music-pill flex items-center gap-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
         <button id="quickMusicPrevBtn" title="上一首" class="hidden sm:flex w-6 h-6 rounded-full hover:bg-white/15 text-[10px] text-zinc-400 hover:text-white items-center justify-center transition-all">⏮</button>
         <button id="quickMusicBtn" class="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-white/15 text-xs text-zinc-300 transition-all" title="播放/暂停音乐">
           <div class="audio-waves-container">
@@ -80,12 +74,12 @@
       </div>
 
       <!-- Celebrate Button -->
-      <button id="celebrateBtn" title="触发浪漫心动礼花" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-all active:scale-95 flex-shrink-0">
+      <button id="celebrateBtn" title="触发浪漫心动礼花" class="nav-icon-btn w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-all active:scale-95 flex-shrink-0">
         <span class="text-xs sm:text-sm">♥</span>
       </button>
 
       <!-- Settings / Customizer Drawer Button -->
-      <button id="openDrawerBtn" title="开启情侣相册个性化设置" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 flex items-center justify-center transition-all flex-shrink-0">
+      <button id="openDrawerBtn" title="开启情侣相册个性化设置" class="nav-icon-btn w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 flex items-center justify-center transition-all flex-shrink-0">
         <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       </button>
     </div>
@@ -117,13 +111,12 @@
       <h2 id="heroCoupleTitle">尹珍珠 &amp; 刘禄洋 ♥</h2>
       <p id="heroQuote">从2021年冬天的初遇，到岁月长河里的每一刻相伴，唯爱永恒。</p>
       <span class="gallery-title-rule" aria-hidden="true"></span>
-    </div>
-
-    <div class="gallery-view-status" aria-hidden="true">
-      <span class="gallery-status-dot"></span>
-      <span>心动视角 · 轻柔旋转</span>
-      <span class="gallery-status-divider"></span>
-      <span>拖动欣赏 · 点击重温</span>
+      <div class="gallery-view-status" aria-hidden="true">
+        <span class="gallery-status-dot"></span>
+        <span>心动视角 · 轻柔旋转</span>
+        <span class="gallery-status-divider"></span>
+        <span>拖动欣赏 · 点击重温</span>
+      </div>
     </div>
 
 
@@ -137,15 +130,15 @@
     <div class="h-6 sm:h-10 w-full flex-shrink-0"></div>
     <div class="max-w-5xl mx-auto space-y-10">
       <!-- Timeline Header with Overall Stats Banner (彻底拉开顶部距离，绝不遮挡) -->
-      <div class="text-center space-y-4 pt-2">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.25)]">
+      <div class="story-hero text-center space-y-4 pt-2">
+        <div class="story-kicker inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.25)]">
           <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
           CHRONOLOGICAL MEMORY VAULT
         </div>
         <h2 class="text-3xl sm:text-5xl font-serif font-bold text-white tracking-wide">时光足迹 · 岁月长卷</h2>
 
         <!-- 显眼的总览统计面板：清晰展示这个页面有多少照片 -->
-        <div class="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-5 px-6 py-3 rounded-2xl bg-zinc-950/85 border border-white/15 backdrop-blur-2xl shadow-2xl text-xs font-mono">
+        <div class="story-stats inline-flex flex-wrap items-center justify-center gap-2 sm:gap-5 px-6 py-3 rounded-2xl bg-zinc-950/85 border border-white/15 backdrop-blur-2xl shadow-2xl text-xs font-mono">
           <div class="flex items-center gap-1.5">
             <span class="text-rose-400 text-sm">📸</span>
             <span class="text-white font-bold">530 张真实合照</span>
@@ -385,6 +378,8 @@
     </div>
   </div>
 
+  <div id="toastContainer" class="ee-toast" aria-live="polite"><span id="toastMessage"></span></div>
+
   <!-- High-Priority Native Audio Host (Auto-play Enabled) -->
   <audio id="mainBgmAudio" src="assets/audio/di57ciquxiaofasong.mp3" preload="auto" autoplay playsinline webkit-playsinline></audio>
 
@@ -419,7 +414,7 @@
       </div>
 
       <!-- Main Image/Video Frame (Zero-Crop Adaptive Native Ratio) -->
-      <div class="relative flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.95)] max-w-[94vw] max-h-[78vh]">
+      <div id="modalFrame" class="viewer-frame relative flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.95)] max-w-[94vw] max-h-[78vh]">
         <img id="modalImg" src="" alt="原图预览" class="w-auto h-auto max-w-[92vw] max-h-[76vh] object-contain transition-transform duration-300">
         <video id="modalVideo" class="w-auto h-auto max-w-[92vw] max-h-[76vh] object-contain hidden" controls playsinline></video>
 
@@ -436,13 +431,16 @@
     </div>
   </div>
 
-  <!-- Application Modules (High-Performance Master Architecture) -->
-  <script src="js/photos-data.js?v=20261027_v2"></script>
-  <script src="js/photo-thumbs.js"></script>
-  <script src="js/neural-synapse.js"></script>
-  <script src="js/sphere3d.js?v=20261027_v2"></script>
-  <script src="js/quantum-heart.js"></script>
-  <script src="js/heart-trail.js?v=20261116_v1"></script>
-  <script src="js/app.js?v=20261027_v2"></script>
+  <!-- 全部延后到页面骨架解析完，并保持顺序 -->
+  <script defer src="js/vendor/three.min.js"></script>
+  <script defer src="js/vendor/OrbitControls.js"></script>
+  <script defer src="js/vendor/gsap.min.js"></script>
+  <script defer src="js/vendor/confetti.browser.min.js"></script>
+  <script defer src="js/photos-data.js?v=20261027_v2"></script>
+  <script defer src="js/photo-thumbs.js"></script>
+  <script defer src="js/neural-synapse.js?v=20261125c"></script>
+  <script defer src="js/sphere3d.js?v=20261125c"></script>
+  <script defer src="js/heart-trail.js?v=20261116_v1"></script>
+  <script defer src="js/app.js?v=20261125b"></script>
 </body>
 </html>

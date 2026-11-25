@@ -89,13 +89,14 @@ class CelestialSphereGallery {
     this.camera.lookAt(0, 25, 0);
 
     // 3. WebGL Renderer
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: pixelRatio <= 1,
       alpha: true,
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(pixelRatio);
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.container.appendChild(this.renderer.domElement);
 
@@ -149,7 +150,22 @@ class CelestialSphereGallery {
 
     // 9. Bind Events & Start Loop
     this.bindEvents();
+    this._running = true;
     this.animate();
+  }
+
+  setRunning(on) {
+    if (on) {
+      if (this._running) return;
+      this._running = true;
+      this.animate();
+      return;
+    }
+    this._running = false;
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = 0;
+    }
   }
 
   // -------------------------------------------------------------
@@ -283,10 +299,9 @@ class CelestialSphereGallery {
     cvs.width = 512; cvs.height = 512;
     const ctx = cvs.getContext('2d');
     const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-    g.addColorStop(0.00, 'rgba(255, 148, 178, 0.62)');
-    g.addColorStop(0.16, 'rgba(244, 63, 94, 0.34)');
-    g.addColorStop(0.42, 'rgba(168, 85, 247, 0.16)');
-    g.addColorStop(0.70, 'rgba(79, 70, 229, 0.06)');
+    g.addColorStop(0.00, 'rgba(255, 236, 210, 0.55)');
+    g.addColorStop(0.18, 'rgba(255, 186, 140, 0.22)');
+    g.addColorStop(0.46, 'rgba(120, 150, 190, 0.08)');
     g.addColorStop(1.00, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 512, 512);
@@ -310,16 +325,16 @@ class CelestialSphereGallery {
   // Rising Memory Hearts (480 颗浪漫升腾的萤火爱心光尘)
   // -------------------------------------------------------------
   createRisingHearts() {
-    const n = 480;
+    const n = 160;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(n * 3);
     const clrs = new Float32Array(n * 3);
     const seeds = [];
 
-    const cPink = new THREE.Color(0xfda4af);
-    const cGold = new THREE.Color(0xfef08a);
-    const cRose = new THREE.Color(0xf43f5e);
-    const cCyan = new THREE.Color(0x38bdf8);
+    const cWarm = new THREE.Color(0xffe7c2);
+    const cGold = new THREE.Color(0xf6d7a2);
+    const cCool = new THREE.Color(0xc5d4ea);
+    const cWhite = new THREE.Color(0xfffaf3);
 
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -329,7 +344,7 @@ class CelestialSphereGallery {
       pos[i * 3 + 2] = (Math.random() - 0.5) * 1600;
 
       const rnd = Math.random();
-      const c = rnd < 0.45 ? cPink : (rnd < 0.72 ? cGold : (rnd < 0.88 ? cRose : cCyan));
+      const c = rnd < 0.4 ? cWarm : (rnd < 0.7 ? cGold : (rnd < 0.88 ? cWhite : cCool));
       clrs[i * 3]     = c.r;
       clrs[i * 3 + 1] = c.g;
       clrs[i * 3 + 2] = c.b;
@@ -346,7 +361,7 @@ class CelestialSphereGallery {
 
     const tex = this.createHeartTexture();
     const mat = new THREE.PointsMaterial({
-      size: 32,
+      size: 18,
       map: tex,
       vertexColors: true,
       transparent: true,
@@ -371,25 +386,25 @@ class CelestialSphereGallery {
     cvs.width = cvs.height = 64;
     const ctx = cvs.getContext('2d');
     const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    g.addColorStop(0.25, 'rgba(255, 210, 230, 0.90)');
-    g.addColorStop(0.60, 'rgba(244, 63, 94, 0.40)');
+    g.addColorStop(0, 'rgba(255, 250, 240, 1)');
+    g.addColorStop(0.28, 'rgba(255, 214, 170, 0.7)');
+    g.addColorStop(0.62, 'rgba(180, 200, 230, 0.18)');
     g.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 64, 64);
     const starTex = new THREE.CanvasTexture(cvs);
 
     // 1. 主星轨（Major Halo Ring）：1400 颗流光粒子，倾角 24°
-    const n1 = 1400;
+    const n1 = 420;
     const geo1 = new THREE.BufferGeometry();
     const pos1 = new Float32Array(n1 * 3);
     const clr1 = new Float32Array(n1 * 3);
     const seeds1 = [];
 
-    const cRose = new THREE.Color(0xf43f5e);
-    const cGold = new THREE.Color(0xfbbf24);
-    const cCyan = new THREE.Color(0x38bdf8);
-    const cWhite = new THREE.Color(0xffffff);
+    const cRose = new THREE.Color(0xf3d2b0);
+    const cGold = new THREE.Color(0xffe6bf);
+    const cCyan = new THREE.Color(0xd5e2f2);
+    const cWhite = new THREE.Color(0xfffaf3);
 
     for (let i = 0; i < n1; i++) {
       const angle = (i / n1) * Math.PI * 2 + (Math.random() - 0.5) * 0.08;
@@ -435,7 +450,7 @@ class CelestialSphereGallery {
     this.cosmicRingsGroup.add(this.haloPoints1);
 
     // 2. 副星轨（Minor Counter-Orbit Ring）：900 颗流光粒子，反向倾角 -18°
-    const n2 = 900;
+    const n2 = 240;
     const geo2 = new THREE.BufferGeometry();
     const pos2 = new Float32Array(n2 * 3);
     const clr2 = new Float32Array(n2 * 3);
@@ -610,21 +625,21 @@ class CelestialSphereGallery {
   // -------------------------------------------------------------
   createHeartTexture() {
     const canvas = document.createElement('canvas');
-    canvas.width = 64; canvas.height = 64;
+    canvas.width = 64;
+    canvas.height = 64;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    const d = 26;
-    ctx.translate(32, 26);
-    ctx.moveTo(0, -d * 0.25);
-    ctx.bezierCurveTo(-d * 0.55, -d * 0.85, -d, -d * 0.2, 0, d * 0.75);
-    ctx.bezierCurveTo(d, -d * 0.2, d * 0.55, -d * 0.85, 0, -d * 0.25);
-    ctx.fill();
+    const light = ctx.createRadialGradient(24, 22, 0, 32, 32, 32);
+    light.addColorStop(0, 'rgba(255,252,245,1)');
+    light.addColorStop(0.28, 'rgba(255,220,180,0.75)');
+    light.addColorStop(0.7, 'rgba(190,205,230,0.12)');
+    light.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = light;
+    ctx.fillRect(0, 0, 64, 64);
     return new THREE.CanvasTexture(canvas);
   }
 
   createStardust() {
-    const starCount = 1800;
+    const starCount = 520;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
     const colors = new Float32Array(starCount * 3);
@@ -634,10 +649,10 @@ class CelestialSphereGallery {
       positions[i + 1] = (Math.random() - 0.5) * 3600;
       positions[i + 2] = (Math.random() - 0.5) * 3600;
 
-      const isRose = Math.random() > 0.4;
-      colors[i] = isRose ? 0.98 : 0.65;
-      colors[i + 1] = isRose ? 0.35 : 0.55;
-      colors[i + 2] = isRose ? 0.65 : 0.98;
+      const warm = Math.random() > 0.35;
+      colors[i] = warm ? 1 : 0.78;
+      colors[i + 1] = warm ? 0.9 : 0.9;
+      colors[i + 2] = warm ? 0.75 : 1;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -645,7 +660,7 @@ class CelestialSphereGallery {
 
     const heartTex = this.createHeartTexture();
     const material = new THREE.PointsMaterial({
-      size: 22,
+      size: 14,
       map: heartTex,
       vertexColors: true,
       transparent: true,
@@ -662,7 +677,7 @@ class CelestialSphereGallery {
   // 近景悬浮光尘粒子层（营造唯美的空间微粒与空气感）
   // -------------------------------------------------------------
   createDustLayer() {
-    const n = 1400;
+    const n = 360;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(n * 3);
     const seeds = [];
@@ -1290,22 +1305,6 @@ class CelestialSphereGallery {
         side: THREE.FrontSide
       });
 
-      // Nouver AI Studio Vertical Mirror Reflection Materials
-      const reflFrontMat = new THREE.MeshBasicMaterial({
-        color: PLACEHOLDER,
-        side: THREE.FrontSide,
-        transparent: true,
-        opacity: 0.52,
-        alphaMap: this.reflectionAlphaMap
-      });
-      const reflBackMat = new THREE.MeshBasicMaterial({
-        color: PLACEHOLDER,
-        side: THREE.FrontSide,
-        transparent: true,
-        opacity: 0.52,
-        alphaMap: this.reflectionAlphaMap
-      });
-
       const applyTexture = (tex) => {
         frontMat.map = tex;
         frontMat.color.setHex(0xffffff);
@@ -1313,12 +1312,6 @@ class CelestialSphereGallery {
         backMat.map = tex;
         backMat.color.setHex(0xffffff);
         backMat.needsUpdate = true;
-        reflFrontMat.map = tex;
-        reflFrontMat.color.setHex(0xffffff);
-        reflFrontMat.needsUpdate = true;
-        reflBackMat.map = tex;
-        reflBackMat.color.setHex(0xffffff);
-        reflBackMat.needsUpdate = true;
       };
 
       frameGroup.userData.applyTexture = applyTexture;
@@ -1373,34 +1366,6 @@ class CelestialSphereGallery {
       frameGroup.userData.borderLine = frontBorder;
       frameGroup.userData.backBorder = backBorder;
 
-      // Nouver Vertical Mirror Reflection Group (Inverted Y Symmetry)
-      const reflectionGroup = new THREE.Group();
-      reflectionGroup.position.y = -cardHeight - 1.5;
-      reflectionGroup.scale.y = -1;
-      reflectionGroup.visible = false;
-
-      const reflFrontMesh = new THREE.Mesh(cardGeo, reflFrontMat);
-      reflFrontMesh.position.z = 0.6;
-      reflectionGroup.add(reflFrontMesh);
-
-      const reflBackMesh = new THREE.Mesh(cardGeo, reflBackMat);
-      reflBackMesh.position.z = -0.6;
-      reflBackMesh.rotation.y = Math.PI;
-      reflectionGroup.add(reflBackMesh);
-
-      const reflBorderMat = new THREE.LineBasicMaterial({
-        color: frameColor,
-        transparent: true,
-        opacity: 0.22,
-        linewidth: 1
-      });
-      const reflBorder = new THREE.LineSegments(edges, reflBorderMat);
-      reflBorder.position.z = 0.8;
-      reflectionGroup.add(reflBorder);
-
-      frameGroup.add(reflectionGroup);
-      frameGroup.userData.reflectionGroup = reflectionGroup;
-
       // Video play indicator badge if video (on Front and Back)
       if (item.isVideo && !item.isClimaxLetter) {
         const badgeGeo = new THREE.CircleGeometry(16, 24);
@@ -1450,7 +1415,7 @@ class CelestialSphereGallery {
       return a.index - b.index;
     });
 
-    const CONCURRENCY = isMobile ? 16 : 28;
+    const CONCURRENCY = isMobile ? 4 : 6;
     let activeWorkers = 0;
     let queueIdx = 0;
 
@@ -1546,6 +1511,7 @@ class CelestialSphereGallery {
 
   applyLayout(shape, instant = false) {
     this.currentShape = shape;
+    this._heartSettled = false;
     const isMobile = (this.container?.clientWidth || window.innerWidth) < 768;
     let camTargetX = 0, camTargetY = this.defaultCamY, camTargetZ = this.defaultCamZ;
     let lookTargetX = 0, lookTargetY = 25, lookTargetZ = 0;
@@ -1671,7 +1637,8 @@ class CelestialSphereGallery {
     if (this.meteorGroup) this.meteorGroup.visible = (shape === 'heart');
     if (this.waveNet) this.waveNet.visible = (shape === 'wave');
 
-    const instantMesh = instant || shape === 'wave' || typeof gsap === 'undefined';
+    // 卡片直接就位。给 500 多张卡片各开三条补间会卡住点击。
+    const instantMesh = true;
 
     this.photoMeshes.forEach((mesh, index) => {
       const target = targets[index % targets.length];
@@ -2095,7 +2062,7 @@ class CelestialSphereGallery {
     if (this.currentShape !== 'wave') {
       this.photoMeshes.forEach(mesh => {
         const s = mesh.userData.baseScale || 1.0;
-        gsap.to(mesh.scale, { x: s, y: s, z: s, duration: 0.4, ease: 'power2.out' });
+        mesh.scale.set(s, s, s);
       });
     }
     this.hoveredMesh = null;
@@ -2111,6 +2078,7 @@ class CelestialSphereGallery {
   // Real-Time Render Loop
   // -------------------------------------------------------------
   animate() {
+    if (!this._running) return;
     this.animationFrameId = requestAnimationFrame(() => this.animate());
 
     const elapsed = this.clock.getElapsedTime();
@@ -2333,6 +2301,11 @@ class CelestialSphereGallery {
       }
 
       const heartCy = this.hologramGroup ? this.hologramGroup.position.y : 25;
+      const heartIdle = this.currentShape === 'heart' && heartExpansion === 0 && beatScale === 1;
+      if (heartIdle && this._heartSettled) {
+        // 心跳间隙不再逐张改位置，主线程留给点击和切页。
+      } else {
+      this._heartSettled = heartIdle;
 
       this.photoMeshes.forEach(mesh => {
         if (mesh !== this.hoveredMesh && mesh.userData.targetPos && !mesh.userData.isAnimating) {
@@ -2377,6 +2350,7 @@ class CelestialSphereGallery {
           }
         }
       });
+      }
 
       if (this.currentShape === 'heart' && this.hologramGroup) {
         const hs = (this.holoBaseScale || 1) * beatScale;

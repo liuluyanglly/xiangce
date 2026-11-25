@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
     const isCodeAsset = (ext === '.html' || ext === '.js' || ext === '.css' || ext === '.json');
     const cacheHeader = isCodeAsset
       ? 'no-cache, no-store, must-revalidate, max-age=0'
-      : 'public, max-age=3600';
+      : 'public, max-age=604800, immutable';
 
     // Support Audio/Video HTTP 206 Partial Content (smooth seeking)
     const range = req.headers.range;
