@@ -28,6 +28,11 @@ node_modules/
 
 .workbuddy/
 
+# Python temporary files
+__pycache__/
+*.pyc
+*.pyo
+
 # Distribution & zip builds
 dist/
 *.zip

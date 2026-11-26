@@ -1579,3 +1579,31 @@ body {
   .island-nav-tabs .nav-tab:first-child .tab-label { display: inline; }
   #viewportStoryline { padding-top: 6.2rem !important; }
 }
+
+/* 浪漫心动礼花与细腻夜空烟花微交互样式 */
+#celebrateBtn {
+  position: relative;
+  overflow: visible;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#celebrateBtn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.6), inset 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+#celebrateBtn span {
+  display: inline-block;
+  animation: heartPulseGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes heartPulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(244, 63, 94, 0.5));
+  }
+  50% {
+    transform: scale(1.22);
+    filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.95)) drop-shadow(0 0 12px rgba(251, 191, 36, 0.8));
+  }
+}

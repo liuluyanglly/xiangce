@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>桌面蹦迪 & 桌面台球 · 鸡你太美狂欢夜</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #0a0a14;
+      color: #fff;
+    }
+
+    /* 桌面容器与壁纸 */
+    #desktop {
+      position: absolute;
+      inset: 0;
+      bottom: 48px;
+      overflow: hidden;
+      transition: filter 0.3s ease;
+      background: radial-gradient(circle at 50% 40%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+    }
+
+    /* 赛博壁纸网格线条 */
+    #desktop::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    /* 台球桌毛呢台面（台球模式时浮现） */
+    #poolTableFelt {
+      position: absolute;
+      inset: 20px;
+      border-radius: 24px;
+      background: radial-gradient(circle at center, #065f46 0%, #064e3b 70%, #022c22 100%);
+      box-shadow: 
+        inset 0 0 80px rgba(0,0,0,0.85),
+        0 0 0 16px #451a03,
+        0 0 0 20px #78350f,
+        0 20px 50px rgba(0,0,0,0.9);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1;
+    }
+
+    #poolTableFelt.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 台球袋 (6个袋口) */
+    .pool-pocket {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #000 65%, #18181b 95%, #27272a 100%);
+      box-shadow: inset 0 6px 12px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.6);
+      z-index: 2;
+      border: 3px solid #78350f;
+    }
+    .pocket-tl { top: -6px; left: -6px; }
+    .pocket-tc { top: -8px; left: calc(50% - 27px); }
+    .pocket-tr { top: -6px; right: -6px; }
+    .pocket-bl { bottom: -6px; left: -6px; }
+    .pocket-bc { bottom: -8px; left: calc(50% - 27px); }
+    .pocket-br { bottom: -6px; right: -6px; }
+
+    /* 台球与图标物理渲染画布 */
+    #physicsCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    /* 迪厅蹦迪特效层 */
+    #discoOverlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      overflow: hidden;
+    }
+
+    #discoOverlay.active {
+      opacity: 1;
+    }
+
+    /* 迪厅射灯 */
+    .spotlight {
+      position: absolute;
+      top: -100px;
+      width: 400px;
+      height: 1200px;
+      transform-origin: top center;
+      background: linear-gradient(180deg, rgba(255, 0, 128, 0.45) 0%, rgba(0, 255, 255, 0.15) 60%, transparent 100%);
+      clip-path: polygon(48% 0%, 52% 0%, 100% 100%, 0% 100%);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      filter: blur(8px);
+    }
+
+    .spotlight-1 {
+      left: 20%;
+      animation: swingLight1 3.5s ease-in-out infinite alternate;
+    }
+    .spotlight-2 {
+      left: 50%;
+      animation: swingLight2 2.8s ease-in-out infinite alternate;
+    }
+    .spotlight-3 {
+      left: 80%;
+      animation: swingLight3 4.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes swingLight1 {
+      0% { transform: rotate(-35deg); filter: hue-rotate(0deg); }
+      100% { transform: rotate(30deg); filter: hue-rotate(180deg); }
+    }
+    @keyframes swingLight2 {
+      0% { transform: rotate(-25deg); filter: hue-rotate(90deg); }
+      100% { transform: rotate(25deg); filter: hue-rotate(270deg); }
+    }
+    @keyframes swingLight3 {
+      0% { transform: rotate(-30deg); filter: hue-rotate(180deg); }
+      100% { transform: rotate(35deg); filter: hue-rotate(360deg); }
+    }
+
+    /* 迪厅闪光球 (Disco Mirror Ball) */
+    #mirrorBall {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff 0%, #cbd5e1 30%, #475569 70%, #0f172a 100%);
+      box-shadow: 0 0 40px rgba(255,255,255,0.8), 0 0 100px rgba(244,63,94,0.6);
+      animation: spinBall 8s linear infinite;
+      z-index: 25;
+      display: none;
+    }
+
+    #mirrorBall::after {
+      content: '';
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      width: 2px;
+      height: 30px;
+      background: #94a3b8;
+    }
+
+    @keyframes spinBall {
+      0% { filter: hue-rotate(0deg); transform: translateX(-50%) rotate(0deg); }
+      100% { filter: hue-rotate(360deg); transform: translateX(-50%) rotate(360deg); }
+    }
+
+    /* 屏幕震动效果 (Bass Shake) */
+    .bass-shaking {
+      animation: screenShake 0.12s infinite;
+    }
+
+    @keyframes screenShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(-3px, 2px) rotate(-0.5deg); }
+      50% { transform: translate(3px, -2px) rotate(0.5deg); }
+      75% { transform: translate(-2px, -3px) rotate(-0.3deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    /* 鸡你太美 舞台与领舞人物容器 */
+    #ikunStage {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 坤坤弹跳与打篮球动画 */
+    .ikun-dancing {
+      animation: ikunDance 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes ikunDance {
+      0% { transform: translateY(0) scale(1) rotate(-3deg); }
+      100% { transform: translateY(-16px) scale(1.05) rotate(3deg); }
+    }
+
+    /* 飘字彩蛋气泡 */
+    #ikunSpeech {
+      background: rgba(0, 0, 0, 0.75);
+      border: 1.5px solid #facc15;
+      color: #fef08a;
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      box-shadow: 0 0 15px rgba(250, 204, 21, 0.6);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    #ikunSpeech.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 底部 Windows 任务栏 */
+    #taskbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      z-index: 100;
+    }
+
+    /* 任务栏快捷按钮群 */
+    .task-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .win-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .win-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .win-btn:active {
+      transform: scale(0.96);
+    }
+
+    .win-btn.active {
+      background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
+      color: #fff;
+      border-color: #fda4af;
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.5);
+    }
+
+    .win-btn.btn-ikun.active {
+      background: linear-gradient(135deg, #eab308 0%, #facc15 100%);
+      color: #1e1b4b;
+      border-color: #fef08a;
+      box-shadow: 0 0 15px rgba(234, 179, 8, 0.6);
+    }
+
+    .win-btn.btn-pool.active {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: #fff;
+      border-color: #6ee7b7;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+    }
+
+    /* 任务栏右侧时间与状态 */
+    .system-tray {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: monospace;
+    }
+
+    /* 顶部 HUD 状态浮标 */
+    #hudBanner {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 18px;
+      border-radius: 30px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #e2e8f0;
+      z-index: 50;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* 快捷操作帮助提示浮层 */
+    #helpTooltip {
+      position: absolute;
+      top: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #cbd5e1;
+      background: rgba(0,0,0,0.65);
+      padding: 4px 14px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 50;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 主桌面视界 -->
+  <div id="desktop">
+
+    <!-- 顶部 HUD 状态与玩法切换提示 -->
+    <div id="hudBanner">
+      <span class="status-dot"></span>
+      <span id="hudModeText">🖥️ 经典桌面模式 · 鼠标拖拽图标可抛掷</span>
+      <span style="opacity: 0.3;">|</span>
+      <span style="color: #facc15; font-size: 11px;">按空格键开启蹦迪</span>
+    </div>
+    <div id="helpTooltip">🎱 点击【桌面台球】拖拽母球击球 · 💃 点击【图标跳舞】感受波浪律动 · 🐔 召唤坤坤</div>
+
+    <!-- 迪厅闪光灯球 -->
+    <div id="mirrorBall"></div>
+
+    <!-- 迪厅蹦迪特效遮罩与射灯 -->
+    <div id="discoOverlay">
+      <div class="spotlight spotlight-1"></div>
+      <div class="spotlight spotlight-2"></div>
+      <div class="spotlight spotlight-3"></div>
+    </div>
+
+    <!-- 台球桌毛呢台面与 6 个球袋 -->
+    <div id="poolTableFelt">
+      <div class="pool-pocket pocket-tl"></div>
+      <div class="pool-pocket pocket-tc"></div>
+      <div class="pool-pocket pocket-tr"></div>
+      <div class="pool-pocket pocket-bl"></div>
+      <div class="pool-pocket pocket-bc"></div>
+      <div class="pool-pocket pocket-br"></div>
+    </div>
+
+    <!-- 图标刚体与台球物理画布 -->
+    <canvas id="physicsCanvas"></canvas>
+
+    <!-- 鸡你太美 领舞坤坤 SVG 舞台 -->
+    <div id="ikunStage">
+      <div id="ikunSpeech">只因你太美！baby~ 🏀</div>
+      <div id="ikunFigure" class="ikun-dancing" style="width: 140px; height: 160px; cursor: pointer; pointer-events: auto;">
+        <svg viewBox="0 0 100 120" width="100%" height="100%">
+          <!-- 篮球阴影 -->
+          <ellipse cx="80" cy="112" rx="14" ry="4" fill="rgba(0,0,0,0.3)" />
+          
+          <!-- 坤坤身体与经典背带裤 -->
+          <!-- 腿部与皮鞋 -->
+          <rect x="36" y="86" width="10" height="20" rx="3" fill="#1e1e24" />
+          <rect x="54" y="86" width="10" height="20" rx="3" fill="#1e1e24" />
+          <ellipse cx="40" cy="107" rx="7" ry="4" fill="#000" />
+          <ellipse cx="60" cy="107" rx="7" ry="4" fill="#000" />
+
+          <!-- 内搭灰色连帽衫 -->
+          <rect x="33" y="44" width="34" height="44" rx="8" fill="#9ca3af" />
+
+          <!-- 经典背带裤 -->
+          <path d="M 36 62 L 64 62 L 64 88 L 36 88 Z" fill="#18181b" />
+          <!-- 双背带 -->
+          <line x1="39" y1="44" x2="41" y2="65" stroke="#18181b" stroke-width="3" />
+          <line x1="61" y1="44" x2="59" y2="65" stroke="#18181b" stroke-width="3" />
+          <!-- 背带扣金属纽扣 -->
+          <circle cx="41" cy="65" r="2" fill="#eab308" />
+          <circle cx="59" cy="65" r="2" fill="#eab308" />
+
+          <!-- 头部与帅气中分发型 -->
+          <!-- 脸部 -->
+          <circle cx="50" cy="30" r="15" fill="#fde047" />
+          <circle cx="45" cy="30" r="2" fill="#1e1b4b" />
+          <circle cx="55" cy="30" r="2" fill="#1e1b4b" />
+          <!-- 微笑 -->
+          <path d="M 46 37 Q 50 41 54 37" stroke="#1e1b4b" stroke-width="1.8" fill="none" stroke-linecap="round" />
+          <!-- 红润脸颊 -->
+          <circle cx="42" cy="33" r="2.5" fill="#f43f5e" opacity="0.6" />
+          <circle cx="58" cy="33" r="2.5" fill="#f43f5e" opacity="0.6" />
+
+          <!-- 灵魂中分灰白头发 -->
+          <path d="M 33 28 C 32 15, 46 12, 50 20 C 54 12, 68 15, 67 28 C 66 18, 54 16, 50 24 C 46 16, 34 18, 33 28 Z" fill="#475569" />
+          <path d="M 35 24 Q 42 16 49 22" stroke="#64748b" stroke-width="2" fill="none" />
+          <path d="M 65 24 Q 58 16 51 22" stroke="#64748b" stroke-width="2" fill="none" />
+
+          <!-- 手臂与运球动作 -->
+          <!-- 左手叉腰/抖肩 -->
+          <path d="M 33 48 Q 22 55 28 66" stroke="#9ca3af" stroke-width="6" stroke-linecap="round" fill="none" />
+          <!-- 右手拍篮球 -->
+          <path d="M 67 48 Q 78 56 78 72" stroke="#9ca3af" stroke-width="6" stroke-linecap="round" fill="none" />
+          <circle cx="78" cy="74" r="5" fill="#fde047" />
+
+          <!-- 篮球本体 (动态跳动) -->
+          <g id="ikunBallGroup" transform="translate(80, 86)">
+            <circle cx="0" cy="0" r="13" fill="#ea580c" stroke="#c2410c" stroke-width="1.5" />
+            <!-- 篮球黑色纹理线条 -->
+            <path d="M -13 0 L 13 0" stroke="#7c2d12" stroke-width="1.2" />
+            <path d="M 0 -13 L 0 13" stroke="#7c2d12" stroke-width="1.2" />
+            <path d="M -9 -9 Q 0 0 -9 9" stroke="#7c2d12" stroke-width="1.2" fill="none" />
+            <path d="M 9 -9 Q 0 0 9 9" stroke="#7c2d12" stroke-width="1.2" fill="none" />
+            <!-- 篮球高光 -->
+            <ellipse cx="-4" cy="-5" rx="3.5" ry="2" fill="rgba(255,255,255,0.4)" transform="rotate(-30 -4 -5)" />
+          </g>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部仿 Windows 任务栏系统 -->
+  <div id="taskbar">
+    <div class="task-controls">
+      <!-- 开始菜单按钮 -->
+      <button class="win-btn" id="startBtn" title="系统菜单">
+        <span style="color: #38bdf8; font-size: 15px;">⊞</span>
+        <span>开始</span>
+      </button>
+
+      <!-- 核心玩法开关 -->
+      <button class="win-btn" id="toggleDiscoBtn" title="开启/关闭 迪厅霓虹射灯与重低音 (Space)">
+        <span>🪩</span>
+        <span>桌面蹦迪</span>
+      </button>
+
+      <button class="win-btn btn-pool" id="togglePoolBtn" title="将桌面图标转化为可撞击的台球 (B)">
+        <span>🎱</span>
+        <span>桌面打台球</span>
+      </button>
+
+      <button class="win-btn" id="toggleDanceBtn" title="让全屏图标卡点跳舞 (D)">
+        <span>💃</span>
+        <span>图标跳舞</span>
+      </button>
+
+      <button class="win-btn btn-ikun active" id="toggleIkunBtn" title="召唤/隐藏 鸡你太美领舞 (J)">
+        <span>🐔</span>
+        <span>鸡你太美</span>
+      </button>
+
+      <button class="win-btn" id="resetDesktopBtn" title="还原桌面图标位置与排列 (R)">
+        <span>↺</span>
+        <span>还原桌面</span>
+      </button>
+
+      <button class="win-btn" id="backToAlbumBtn" title="返回永恒相册" style="background: rgba(244,63,94,0.15); border-color: rgba(244,63,94,0.3); color: #fda4af;">
+        <span>💖</span>
+        <span>返回相册</span>
+      </button>
+    </div>
+
+    <!-- 任务栏右侧系统托盘 -->
+    <div class="system-tray">
+      <span id="bgmIndicator" style="cursor: pointer;" title="点击切换音效静音">🔊 DJ ON</span>
+      <span id="clockDisplay">12:00</span>
+    </div>
+  </div>
+
+  <!-- 纯前端免外部资源 Web Audio 8-bit & Electro 舞曲与台球碰撞音效合成器 -->
+  <script>
+    class WebAudioSynth {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+        this.isPlayingDiscoBGM = false;
+        this.bgmTimer = null;
+        this.step = 0;
+
+        // "只因你太美" 经典主旋律音符序列 (MIDI 简谱)
+        // 6 1 2 3 5 3 2 1 | 6 1 2 2 1 6
+        this.ikunNotes = [
+          440.00, 523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25,
+          440.00, 523.25, 587.33, 587.33, 523.25, 440.00, 392.00, 440.00
+        ];
+        this.bassNotes = [110, 110, 130.81, 146.83, 110, 110, 164.81, 146.83];
+      }
+
+      initContext() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      // 击球声 (球杆击打白球)
+      playCueHit() {
+        if (this.isMuted) return;
+        this.initContext();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.08);
+
+        gain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      }
+
+      // 台球相互碰撞清脆声
+      playBallCollide(intensity = 1.0) {
+        if (this.isMuted) return;
+        this.initContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        const freq = 1200 + Math.random() * 400;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.04);
+
+        const vol = Math.min(Math.max(intensity * 0.4, 0.05), 0.5);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(now + 0.04);
+      }
+
+      // 球进袋清脆声
+      playPocketSound() {
+        if (this.isMuted) return;
+        this.initContext();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(350, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.25);
+
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(now + 0.25);
+      }
+
+      // 坤坤音效 / 鸡你太美主旋律小节
+      playIkunPhrase() {
+        if (this.isMuted) return;
+        this.initContext();
+        const now = this.ctx.currentTime;
+        // 快速演奏一段经典抓耳琶音
+        const phrase = [523.25, 659.25, 783.99, 880.00, 1046.50];
+        phrase.forEach((freq, idx) => {
+          const t = now + idx * 0.09;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, t);
+
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.12);
+        });
+      }
+
+      // 迪厅蹦迪持续循环电音 BGM
+      startDiscoBGM() {
+        if (this.isPlayingDiscoBGM) return;
+        this.initContext();
+        this.isPlayingDiscoBGM = true;
+        this.step = 0;
+
+        const bpm = 132;
+        const interval = (60 / bpm / 2) * 1000; // 八分音符步进
+
+        this.bgmTimer = setInterval(() => {
+          if (!this.isPlayingDiscoBGM || this.isMuted) return;
+          const now = this.ctx.currentTime;
+
+          // 1. 底鼓重低音 (Kick Drum) - 每两步敲一次
+          if (this.step % 2 === 0) {
+            const kickOsc = this.ctx.createOscillator();
+            const kickGain = this.ctx.createGain();
+            kickOsc.type = 'sine';
+            kickOsc.frequency.setValueAtTime(150, now);
+            kickOsc.frequency.exponentialRampToValueAtTime(35, now + 0.1);
+
+            kickGain.gain.setValueAtTime(0.8, now);
+            kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+            kickOsc.connect(kickGain);
+            kickGain.connect(this.ctx.destination);
+            kickOsc.start(now);
+            kickOsc.stop(now + 0.12);
+
+            // 触发桌面低音震颤
+            if (window.desktopDisco) {
+              window.desktopDisco.triggerBassShake();
+            }
+          }
+
+          // 2. 踩镲 (Hi-hat) - 反拍发声
+          if (this.step % 2 === 1) {
+            const hatOsc = this.ctx.createOscillator();
+            const hatGain = this.ctx.createGain();
+            hatOsc.type = 'square';
+            hatOsc.frequency.setValueAtTime(4500 + Math.random() * 2000, now);
+
+            hatGain.gain.setValueAtTime(0.12, now);
+            hatGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+            hatOsc.connect(hatGain);
+            hatGain.connect(this.ctx.destination);
+            hatOsc.start(now);
+            hatOsc.stop(now + 0.05);
+          }
+
+          // 3. 经典鸡你太美旋律音
+          const noteFreq = this.ikunNotes[this.step % this.ikunNotes.length];
+          const synthOsc = this.ctx.createOscillator();
+          const synthGain = this.ctx.createGain();
+          synthOsc.type = 'sawtooth';
+          synthOsc.frequency.setValueAtTime(noteFreq, now);
+
+          synthGain.gain.setValueAtTime(0.18, now);
+          synthGain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+          synthOsc.connect(synthGain);
+          synthGain.connect(this.ctx.destination);
+          synthOsc.start(now);
+          synthOsc.stop(now + 0.18);
+
+          this.step++;
+        }, interval);
+      }
+
+      stopDiscoBGM() {
+        this.isPlayingDiscoBGM = false;
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+    }
+
+    // 桌面物理系统：管理桌面图标、台球刚体碰撞与跳舞动效
+    class DesktopPhysicsEngine {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.width = 0;
+        this.height = 0;
+
+        this.items = []; // 桌面图标刚体列表
+        this.cueBall = null; // 台球模式下的母球 (白球)
+        this.cueStick = {
+          isAiming: false,
+          startX: 0,
+          startY: 0,
+          currentX: 0,
+          currentY: 0,
+          power: 0,
+          angle: 0
+        };
+
+        this.isPoolMode = false;
+        this.isDiscoMode = false;
+        this.isDancingMode = false;
+        this.danceTimer = 0;
+        this.draggedItem = null;
+        this.dragOffset = { x: 0, y: 0 };
+
+        this.synth = new WebAudioSynth();
+        this.initCanvasSize();
+        this.createDesktopIcons();
+        this.bindEvents();
+        this.loop = this.loop.bind(this);
+        requestAnimationFrame(this.loop);
+      }
+
+      initCanvasSize() {
+        const desktop = document.getElementById('desktop');
+        this.width = desktop.clientWidth;
+        this.height = desktop.clientHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+      }
+
+      // 创建经典桌面图标（可变成台球）
+      createDesktopIcons() {
+        this.items = [];
+        const rawIcons = [
+          { name: '此电脑', icon: '💻', color: '#0284c7', ballNum: 1 },
+          { name: '回收站', icon: '🗑️', color: '#64748b', ballNum: 2 },
+          { name: 'Google Chrome', icon: '🌐', color: '#eab308', ballNum: 3 },
+          { name: '微信', icon: '💬', color: '#16a34a', ballNum: 4 },
+          { name: '网易云音乐', icon: '🎵', color: '#dc2626', ballNum: 5 },
+          { name: 'VS Code', icon: '📝', color: '#2563eb', ballNum: 6 },
+          { name: 'Steam', icon: '🎮', color: '#1e293b', ballNum: 7 },
+          { name: '鸡你太美 2026', icon: '🏀', color: '#f59e0b', ballNum: 8 },
+          { name: '原神', icon: '✨', color: '#8b5cf6', ballNum: 9 },
+          { name: '抖音', icon: '🎵', color: '#0f172a', ballNum: 10 },
+          { name: '永恒相册', icon: '💖', color: '#f43f5e', ballNum: 11 },
+          { name: '迪厅遥控器', icon: '🪩', color: '#ec4899', ballNum: 12 },
+          { name: '坤坤篮球部', icon: '🐔', color: '#d97706', ballNum: 13 },
+          { name: '我的秘密日记', icon: '🔒', color: '#4b5563', ballNum: 14 },
+          { name: '终极台球霸王', icon: '🎱', color: '#111827', ballNum: 15 }
+        ];
+
+        // 默认按经典桌面网格排布 (两列排布)
+        const startX = 60;
+        const startY = 60;
+        const rowSpacing = 85;
+        const colSpacing = 95;
+
+        rawIcons.forEach((item, idx) => {
+          const col = Math.floor(idx / 7);
+          const row = idx % 7;
+          const origX = startX + col * colSpacing;
+          const origY = startY + row * rowSpacing;
+
+          this.items.push({
+            id: idx,
+            name: item.name,
+            icon: item.icon,
+            color: item.color,
+            ballNum: item.ballNum,
+            x: origX,
+            y: origY,
+            origX: origX,
+            origY: origY,
+            vx: 0,
+            vy: 0,
+            radius: 26, // 台球/图标半径
+            mass: 1.0,
+            isPocketed: false,
+            rotation: 0,
+            dancePhase: idx * 0.4
+          });
+        });
+
+        // 创建台球母球 (白球)
+        this.cueBall = {
+          name: '母球',
+          icon: '⚪',
+          color: '#ffffff',
+          ballNum: 0,
+          x: this.width * 0.75,
+          y: this.height * 0.5,
+          origX: this.width * 0.75,
+          origY: this.height * 0.5,
+          vx: 0,
+          vy: 0,
+          radius: 26,
+          mass: 1.15,
+          isCue: true,
+          isPocketed: false,
+          rotation: 0
+        };
+      }
+
+      // 重置回桌面整齐网格
+      resetDesktopLayout() {
+        this.items.forEach(item => {
+          item.x = item.origX;
+          item.y = item.origY;
+          item.vx = 0;
+          item.vy = 0;
+          item.rotation = 0;
+          item.isPocketed = false;
+        });
+        if (this.cueBall) {
+          this.cueBall.x = this.width * 0.75;
+          this.cueBall.y = this.height * 0.5;
+          this.cueBall.vx = 0;
+          this.cueBall.vy = 0;
+          this.cueBall.isPocketed = false;
+        }
+      }
+
+      // 切换台球模式
+      togglePoolMode() {
+        this.isPoolMode = !this.isPoolMode;
+        const felt = document.getElementById('poolTableFelt');
+        const btn = document.getElementById('togglePoolBtn');
+        const hud = document.getElementById('hudModeText');
+
+        if (this.isPoolMode) {
+          felt.classList.add('active');
+          btn.classList.add('active');
+          hud.textContent = '🎱 桌面台球模式 · 拖拽白球蓄力瞄准，击打所有桌面图标！';
+          // 摆成经典的台球三角形球阵
+          this.rackPoolBalls();
+        } else {
+          felt.classList.remove('active');
+          btn.classList.remove('active');
+          hud.textContent = '🖥️ 经典桌面模式 · 鼠标拖拽图标可抛掷';
+          this.resetDesktopLayout();
+        }
+      }
+
+      // 摆放台球三角阵型
+      rackPoolBalls() {
+        const apexX = this.width * 0.35;
+        const apexY = this.height * 0.5;
+        const r = 26;
+        const dx = r * 1.732;
+        const dy = r * 1.05;
+
+        let ballIndex = 0;
+        // 5 层三角形排布
+        for (let row = 0; row < 5; row++) {
+          for (let col = 0; col <= row; col++) {
+            if (ballIndex < this.items.length) {
+              const x = apexX - row * dx;
+              const y = apexY + (col - row / 2) * (dy * 2);
+              this.items[ballIndex].x = x;
+              this.items[ballIndex].y = y;
+              this.items[ballIndex].vx = (Math.random() - 0.5) * 0.5;
+              this.items[ballIndex].vy = (Math.random() - 0.5) * 0.5;
+              this.items[ballIndex].isPocketed = false;
+              ballIndex++;
+            }
+          }
+        }
+
+        // 白球放在发球线位置
+        if (this.cueBall) {
+          this.cueBall.x = this.width * 0.75;
+          this.cueBall.y = this.height * 0.5;
+          this.cueBall.vx = 0;
+          this.cueBall.vy = 0;
+          this.cueBall.isPocketed = false;
+        }
+      }
+
+      // 切换蹦迪模式
+      toggleDiscoMode() {
+        this.isDiscoMode = !this.isDiscoMode;
+        const overlay = document.getElementById('discoOverlay');
+        const mirrorBall = document.getElementById('mirrorBall');
+        const btn = document.getElementById('toggleDiscoBtn');
+        const hud = document.getElementById('hudModeText');
+
+        if (this.isDiscoMode) {
+          overlay.classList.add('active');
+          mirrorBall.style.display = 'block';
+          btn.classList.add('active');
+          hud.textContent = '🪩 桌面蹦迪狂欢中 · 激光射灯与低音炮已就位！';
+          this.synth.startDiscoBGM();
+        } else {
+          overlay.classList.remove('active');
+          mirrorBall.style.display = 'none';
+          btn.classList.remove('active');
+          hud.textContent = '🖥️ 经典桌面模式';
+          this.synth.stopDiscoBGM();
+        }
+      }
+
+      // 切换图标跳舞模式
+      toggleDancingMode() {
+        this.isDancingMode = !this.isDancingMode;
+        const btn = document.getElementById('toggleDanceBtn');
+        btn.classList.toggle('active', this.isDancingMode);
+      }
+
+      // 物理碰撞更新逻辑
+      updatePhysics() {
+        const allBalls = [...this.items];
+        if (this.isPoolMode && this.cueBall && !this.cueBall.isPocketed) {
+          allBalls.push(this.cueBall);
+        }
+
+        const friction = this.isPoolMode ? 0.985 : 0.96; // 摩擦阻力
+        const boundPadding = this.isPoolMode ? 45 : 30;
+
+        // 台球袋位置 (6个球袋检测)
+        const pockets = [
+          { x: boundPadding, y: boundPadding },
+          { x: this.width / 2, y: boundPadding },
+          { x: this.width - boundPadding, y: boundPadding },
+          { x: boundPadding, y: this.height - boundPadding },
+          { x: this.width / 2, y: this.height - boundPadding },
+          { x: this.width - boundPadding, y: this.height - boundPadding }
+        ];
+
+        // 1. 位置更新与边界反弹
+        allBalls.forEach(b => {
+          if (b.isPocketed) return;
+
+          // 施加跳舞微动力
+          if (this.isDancingMode) {
+            const danceFreq = this.danceTimer * 6 + b.dancePhase;
+            b.x += Math.sin(danceFreq) * 1.5;
+            b.y += Math.cos(danceFreq * 1.2) * 1.2;
+            b.rotation = Math.sin(danceFreq) * 0.25;
+          }
+
+          b.x += b.vx;
+          b.y += b.vy;
+          b.vx *= friction;
+          b.vy *= friction;
+
+          // 停止极微小滑动
+          if (Math.abs(b.vx) < 0.03) b.vx = 0;
+          if (Math.abs(b.vy) < 0.03) b.vy = 0;
+
+          // 旋转与位移联动
+          b.rotation += (b.vx + b.vy) * 0.02;
+
+          // 边界碰撞反弹
+          if (b.x - b.radius < boundPadding) {
+            b.x = boundPadding + b.radius;
+            b.vx = -b.vx * 0.85;
+            this.synth.playBallCollide(Math.abs(b.vx));
+          } else if (b.x + b.radius > this.width - boundPadding) {
+            b.x = this.width - boundPadding - b.radius;
+            b.vx = -b.vx * 0.85;
+            this.synth.playBallCollide(Math.abs(b.vx));
+          }
+
+          if (b.y - b.radius < boundPadding) {
+            b.y = boundPadding + b.radius;
+            b.vy = -b.vy * 0.85;
+            this.synth.playBallCollide(Math.abs(b.vy));
+          } else if (b.y + b.radius > this.height - boundPadding) {
+            b.y = this.height - boundPadding - b.radius;
+            b.vy = -b.vy * 0.85;
+            this.synth.playBallCollide(Math.abs(b.vy));
+          }
+
+          // 进洞检测 (仅在台球模式)
+          if (this.isPoolMode) {
+            pockets.forEach(p => {
+              const dist = Math.hypot(b.x - p.x, b.y - p.y);
+              if (dist < 36) {
+                b.isPocketed = true;
+                b.vx = 0;
+                b.vy = 0;
+                this.synth.playPocketSound();
+
+                // 如果是母球进洞，2秒后复活
+                if (b.isCue) {
+                  setTimeout(() => {
+                    b.isPocketed = false;
+                    b.x = this.width * 0.75;
+                    b.y = this.height * 0.5;
+                  }, 1200);
+                }
+              }
+            });
+          }
+        });
+
+        // 2. 两两完全弹性碰撞检测 (动量守恒)
+        for (let i = 0; i < allBalls.length; i++) {
+          for (let j = i + 1; j < allBalls.length; j++) {
+            const b1 = allBalls[i];
+            const b2 = allBalls[j];
+            if (b1.isPocketed || b2.isPocketed) continue;
+
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = b1.radius + b2.radius;
+
+            if (dist < minDist && dist > 0) {
+              // 1. 位置反穿透修正 (重叠推开)
+              const overlap = minDist - dist;
+              const nx = dx / dist;
+              const ny = dy / dist;
+
+              b1.x -= nx * overlap * 0.5;
+              b1.y -= ny * overlap * 0.5;
+              b2.x += nx * overlap * 0.5;
+              b2.y += ny * overlap * 0.5;
+
+              // 2. 动量守恒完全弹性碰撞
+              const kx = b1.vx - b2.vx;
+              const ky = b1.vy - b2.vy;
+              const p = 2 * (nx * kx + ny * ky) / (b1.mass + b2.mass);
+
+              b1.vx -= p * b2.mass * nx;
+              b1.vy -= p * b2.mass * ny;
+              b2.vx += p * b1.mass * nx;
+              b2.vy += p * b1.mass * ny;
+
+              // 播放碰撞音效
+              const impactSpeed = Math.hypot(kx, ky);
+              if (impactSpeed > 0.5) {
+                this.synth.playBallCollide(impactSpeed * 0.15);
+              }
+            }
+          }
+        }
+      }
+
+      // 渲染主画布
+      render() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
+        // 渲染球袋引导线 (台球模式)
+        if (this.isPoolMode) {
+          this.renderPoolGuidelines();
+        }
+
+        // 渲染所有球/图标
+        const allBalls = [...this.items];
+        if (this.isPoolMode && this.cueBall && !this.cueBall.isPocketed) {
+          allBalls.push(this.cueBall);
+        }
+
+        allBalls.forEach(b => {
+          if (b.isPocketed) return;
+          this.renderBall(b);
+        });
+
+        // 渲染台球杆与瞄准虚线
+        if (this.isPoolMode && this.cueStick.isAiming && this.cueBall && !this.cueBall.isPocketed) {
+          this.renderCueStick();
+        }
+      }
+
+      // 绘制单个图标 / 台球
+      renderBall(b) {
+        this.ctx.save();
+        this.ctx.translate(b.x, b.y);
+        this.ctx.rotate(b.rotation);
+
+        // 绘制阴影
+        this.ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        this.ctx.shadowBlur = 12;
+        this.ctx.shadowOffsetY = 6;
+
+        if (this.isPoolMode) {
+          // 台球形态渲染：圆形彩色球体 + 高光 + 球号
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+          this.ctx.fillStyle = b.color;
+          this.ctx.fill();
+
+          // 球号白色小圆标 (母球除外)
+          if (!b.isCue) {
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, 11, 0, Math.PI * 2);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fill();
+
+            this.ctx.fillStyle = '#000000';
+            this.ctx.font = 'bold 11px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(b.ballNum, 0, 1);
+          } else {
+            // 母球红点
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.fill();
+          }
+
+          // 台球球体 3D 渐变高光
+          this.ctx.beginPath();
+          this.ctx.arc(-7, -7, 10, 0, Math.PI * 2);
+          this.ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          this.ctx.fill();
+
+        } else {
+          // 桌面图标形态：圆角图标卡片 + 图标文字
+          const size = b.radius * 2;
+          this.ctx.beginPath();
+          this.ctx.roundRect(-b.radius, -b.radius, size, size, 12);
+          this.ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+          this.ctx.fill();
+          this.ctx.lineWidth = 1.5;
+          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          this.ctx.stroke();
+
+          // 绘制 Emoji 图标
+          this.ctx.font = '26px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText(b.icon, 0, -2);
+
+          // 绘制图标名称标签
+          this.ctx.shadowColor = 'transparent';
+          this.ctx.fillStyle = '#f8fafc';
+          this.ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          this.ctx.fillText(b.name, 0, b.radius + 12);
+
+          // 蹦迪律动音符特效
+          if (this.isDancingMode || this.isDiscoMode) {
+            this.ctx.fillStyle = '#f43f5e';
+            this.ctx.font = '12px sans-serif';
+            this.ctx.fillText('♪', b.radius - 2, -b.radius + 2);
+          }
+        }
+
+        this.ctx.restore();
+      }
+
+      // 台球桌发球线与半圆辅助线
+      renderPoolGuidelines() {
+        this.ctx.save();
+        const startLineX = this.width * 0.75;
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([6, 6]);
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(startLineX, 45);
+        this.ctx.lineTo(startLineX, this.height - 45);
+        this.ctx.stroke();
+
+        this.ctx.restore();
+      }
+
+      // 渲染台球杆与激光瞄准线
+      renderCueStick() {
+        const b = this.cueBall;
+        const dx = this.cueStick.startX - this.cueStick.currentX;
+        const dy = this.cueStick.startY - this.cueStick.currentY;
+        const pullDist = Math.min(Math.hypot(dx, dy), 160);
+        const angle = Math.atan2(dy, dx);
+
+        this.ctx.save();
+        this.ctx.translate(b.x, b.y);
+
+        // 1. 前方激光瞄准虚线
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.setLineDash([6, 8]);
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(Math.cos(angle) * 350, Math.sin(angle) * 350);
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // 2. 蓄力台球杆
+        this.ctx.rotate(angle + Math.PI);
+        const stickOffset = b.radius + 8 + pullDist * 0.6;
+
+        // 木质球杆渐变
+        const grad = this.ctx.createLinearGradient(stickOffset, 0, stickOffset + 240, 0);
+        grad.addColorStop(0, '#fef08a');
+        grad.addColorStop(0.1, '#d97706');
+        grad.addColorStop(0.7, '#78350f');
+        grad.addColorStop(1, '#1e1b4b');
+
+        this.ctx.fillStyle = grad;
+        this.ctx.beginPath();
+        this.ctx.moveTo(stickOffset, -2.5);
+        this.ctx.lineTo(stickOffset + 260, -5.5);
+        this.ctx.lineTo(stickOffset + 260, 5.5);
+        this.ctx.lineTo(stickOffset, 2.5);
+        this.ctx.closePath();
+        this.ctx.fill();
+
+        // 球杆皮头
+        this.ctx.fillStyle = '#38bdf8';
+        this.ctx.fillRect(stickOffset - 3, -2.5, 3, 5);
+
+        this.ctx.restore();
+      }
+
+      // 鼠标与触摸事件绑定
+      bindEvents() {
+        window.addEventListener('resize', () => this.initCanvasSize());
+
+        // 鼠标按下：检测抓取图标或蓄力击打台球
+        this.canvas.addEventListener('mousedown', (e) => this.onPointerDown(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => this.onPointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', () => this.onPointerUp());
+
+        // 移动端 Touch 触摸支持
+        this.canvas.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 0) this.onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        window.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) this.onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        window.addEventListener('touchend', () => this.onPointerUp());
+      }
+
+      onPointerDown(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = clientX - rect.left;
+        const mouseY = clientY - rect.top;
+
+        if (this.isPoolMode && this.cueBall && !this.cueBall.isPocketed) {
+          // 点击白球附近开始瞄准
+          const distToCue = Math.hypot(mouseX - this.cueBall.x, mouseY - this.cueBall.y);
+          if (distToCue < 120) {
+            this.cueStick.isAiming = true;
+            this.cueStick.startX = mouseX;
+            this.cueStick.startY = mouseY;
+            this.cueStick.currentX = mouseX;
+            this.cueStick.currentY = mouseY;
+            return;
+          }
+        }
+
+        // 普通图标拖拽
+        for (let i = this.items.length - 1; i >= 0; i--) {
+          const item = this.items[i];
+          if (Math.hypot(mouseX - item.x, mouseY - item.y) <= item.radius + 10) {
+            this.draggedItem = item;
+            this.dragOffset.x = mouseX - item.x;
+            this.dragOffset.y = mouseY - item.y;
+            item.vx = 0;
+            item.vy = 0;
+            break;
+          }
+        }
+      }
+
+      onPointerMove(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = clientX - rect.left;
+        const mouseY = clientY - rect.top;
+
+        if (this.cueStick.isAiming) {
+          this.cueStick.currentX = mouseX;
+          this.cueStick.currentY = mouseY;
+        } else if (this.draggedItem) {
+          // 记录拖拽速度以便松开时产生抛掷效果
+          this.draggedItem.vx = (mouseX - this.dragOffset.x - this.draggedItem.x) * 0.45;
+          this.draggedItem.vy = (mouseY - this.dragOffset.y - this.draggedItem.y) * 0.45;
+          this.draggedItem.x = mouseX - this.dragOffset.x;
+          this.draggedItem.y = mouseY - this.dragOffset.y;
+        }
+      }
+
+      onPointerUp() {
+        if (this.cueStick.isAiming && this.cueBall) {
+          const dx = this.cueStick.startX - this.cueStick.currentX;
+          const dy = this.cueStick.startY - this.cueStick.currentY;
+          const pullDist = Math.hypot(dx, dy);
+
+          if (pullDist > 15) {
+            const power = Math.min(pullDist * 0.22, 28);
+            const angle = Math.atan2(dy, dx);
+            this.cueBall.vx = Math.cos(angle) * power;
+            this.cueBall.vy = Math.sin(angle) * power;
+            this.synth.playCueHit();
+          }
+
+          this.cueStick.isAiming = false;
+        }
+        this.draggedItem = null;
+      }
+
+      // 主循环
+      loop() {
+        this.danceTimer += 0.05;
+        this.updatePhysics();
+        this.render();
+        requestAnimationFrame(this.loop);
+      }
+    }
+
+    // 主控制器与 UI 调度
+    class DesktopDiscoApp {
+      constructor() {
+        this.engine = new DesktopPhysicsEngine('physicsCanvas');
+        this.ikunStage = document.getElementById('ikunStage');
+        this.ikunSpeech = document.getElementById('ikunSpeech');
+        this.ikunFigure = document.getElementById('ikunFigure');
+        this.ballGroup = document.getElementById('ikunBallGroup');
+        this.clockDisplay = document.getElementById('clockDisplay');
+
+        this.speechPhrases = [
+          '只因你太美！baby~ 🏀',
+          '迎面走来的你让我蠢蠢欲动~',
+          '唱、跳、rap、篮球！',
+          '你干嘛~~哈哈哎哟！',
+          '巅峰产生虚伪的拥护，黄昏见证真正的信徒',
+          '食不食油饼~',
+          '厉不厉害你坤哥！'
+        ];
+        this.phraseIndex = 0;
+
+        this.bindUI();
+        this.startClock();
+        this.startIkunBouncingBall();
+      }
+
+      bindUI() {
+        // 桌面蹦迪按钮
+        document.getElementById('toggleDiscoBtn').addEventListener('click', () => {
+          this.engine.toggleDiscoMode();
+        });
+
+        // 桌面打台球按钮
+        document.getElementById('togglePoolBtn').addEventListener('click', () => {
+          this.engine.togglePoolMode();
+        });
+
+        // 图标跳舞按钮
+        document.getElementById('toggleDanceBtn').addEventListener('click', () => {
+          this.engine.toggleDancingMode();
+        });
+
+        // 召唤坤坤按钮
+        document.getElementById('toggleIkunBtn').addEventListener('click', (e) => {
+          const isHidden = this.ikunStage.style.display === 'none';
+          this.ikunStage.style.display = isHidden ? 'flex' : 'none';
+          e.currentTarget.classList.toggle('active', isHidden);
+          if (isHidden) this.triggerIkunEasterEgg();
+        });
+
+        // 还原桌面按钮
+        document.getElementById('resetDesktopBtn').addEventListener('click', () => {
+          this.engine.resetDesktopLayout();
+        });
+
+        // 返回永恒相册按钮
+        document.getElementById('backToAlbumBtn').addEventListener('click', () => {
+          window.location.href = 'index.html';
+        });
+
+        // 点击坤坤本体触发经典台词与魔性音效
+        this.ikunFigure.addEventListener('click', () => {
+          this.triggerIkunEasterEgg();
+        });
+
+        // 任务栏时间静音切换
+        document.getElementById('bgmIndicator').addEventListener('click', (e) => {
+          this.engine.synth.isMuted = !this.engine.synth.isMuted;
+          e.currentTarget.textContent = this.engine.synth.isMuted ? '🔇 MUTE' : '🔊 DJ ON';
+        });
+
+        // 键盘快捷键监听
+        window.addEventListener('keydown', (e) => {
+          if (e.code === 'Space') {
+            e.preventDefault();
+            this.engine.toggleDiscoMode();
+          } else if (e.key === 'b' || e.key === 'B') {
+            this.engine.togglePoolMode();
+          } else if (e.key === 'd' || e.key === 'D') {
+            this.engine.toggleDancingMode();
+          } else if (e.key === 'j' || e.key === 'J') {
+            this.triggerIkunEasterEgg();
+          } else if (e.key === 'r' || e.key === 'R') {
+            this.engine.resetDesktopLayout();
+          }
+        });
+      }
+
+      // 坤坤拍篮球循环动画
+      startIkunBouncingBall() {
+        let t = 0;
+        setInterval(() => {
+          t += 0.25;
+          const bounceY = Math.abs(Math.sin(t)) * 14;
+          if (this.ballGroup) {
+            this.ballGroup.setAttribute('transform', `translate(80, ${86 + bounceY})`);
+          }
+        }, 30);
+      }
+
+      // 点击坤坤触发台词与跳舞
+      triggerIkunEasterEgg() {
+        const text = this.speechPhrases[this.phraseIndex % this.speechPhrases.length];
+        this.phraseIndex++;
+        this.ikunSpeech.textContent = text;
+        this.ikunSpeech.classList.add('show');
+        this.engine.synth.playIkunPhrase();
+
+        // 坤坤原地跳跃一次
+        this.ikunFigure.style.transform = 'translateY(-30px) scale(1.15)';
+        setTimeout(() => {
+          this.ikunFigure.style.transform = '';
+        }, 220);
+
+        setTimeout(() => {
+          this.ikunSpeech.classList.remove('show');
+        }, 2400);
+      }
+
+      // 重低音屏幕晃动 (Bass Shake)
+      triggerBassShake() {
+        const desktop = document.getElementById('desktop');
+        desktop.classList.add('bass-shaking');
+        setTimeout(() => {
+          desktop.classList.remove('bass-shaking');
+        }, 110);
+      }
+
+      // 任务栏实时时间
+      startClock() {
+        const update = () => {
+          const now = new Date();
+          const hrs = String(now.getHours()).padStart(2, '0');
+          const mins = String(now.getMinutes()).padStart(2, '0');
+          this.clockDisplay.textContent = `${hrs}:${mins}`;
+        };
+        update();
+        setInterval(update, 1000);
+      }
+    }
+
+    // 页面加载完毕自启动
+    window.addEventListener('DOMContentLoaded', () => {
+      window.desktopDisco = new DesktopDiscoApp();
+    });
+  </script>
+</body>
+</html>

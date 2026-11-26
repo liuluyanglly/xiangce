@@ -519,11 +519,20 @@ class HeartTrailGallery {
       ease: 'power1.inOut'
     });
 
-    // 浪漫礼花绽放
+    // 浪漫礼花绽放 (结合细腻高空夜空烟花)
+    if (window.app && window.app.fireworks) {
+      window.app.fireworks.launch(window.innerWidth * 0.5, window.innerWidth * 0.5, window.innerHeight * 0.28, 'heart');
+      setTimeout(() => {
+        if (window.app && window.app.fireworks) {
+          window.app.fireworks.launch(window.innerWidth * 0.35, window.innerWidth * 0.35, window.innerHeight * 0.38, 'willow');
+          window.app.fireworks.launch(window.innerWidth * 0.65, window.innerWidth * 0.65, window.innerHeight * 0.38, 'willow');
+        }
+      }, 350);
+    }
     if (typeof confetti === 'function') {
       confetti({
-        particleCount: 45,
-        spread: 75,
+        particleCount: 35,
+        spread: 70,
         origin: { x: 0.5, y: 0.46 },
         colors: ['#f43f5e', '#fb7185', '#fda4af', '#f472b6', '#fbbf24', '#c084fc']
       });

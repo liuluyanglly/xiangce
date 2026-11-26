@@ -77,6 +77,8 @@ class EternalApp {
     this.neuralNet = null;
     this.sphereGallery = null;
     this.heartTrailGallery = null;
+    this.fireworks = null;
+    window.app = this;
     // Sequential Audio Playlist System (Auto-Chained: 《第57次取消发送》 -> 《理想三旬》 -> 《晴天》 -> 视频原声)
     this.playlist = [
       {
@@ -202,6 +204,14 @@ class EternalApp {
       this.neuralNet = new NeuralSynapseNetwork('neuralCanvas');
     } catch (e) {
       console.warn('Neural canvas note:', e);
+    }
+    // 2b. Initialize Cinematic Romantic Fireworks Engine (殿堂级细腻夜空烟花)
+    if (typeof RomanticFireworks !== 'undefined') {
+      try {
+        this.fireworks = new RomanticFireworks('fireworksCanvas');
+      } catch (e) {
+        console.warn('Romantic fireworks note:', e);
+      }
     }
     // 3. Initialize Master 3D Spatial Gallery (CelestialSphereGallery)
     if (document.getElementById('sphereContainer') && typeof CelestialSphereGallery !== 'undefined') {
@@ -602,34 +612,30 @@ class EternalApp {
     this.toastTimer = setTimeout(() => container.classList.remove('is-on'), 2800);
   }
   celebrateHeart() {
-    // 1. Synaptic storm
+    // 1. 触发心动礼花按钮微缩放光晕动画
+    const heartBtn = document.getElementById('celebrateBtn');
+    if (heartBtn && typeof gsap !== 'undefined') {
+      gsap.fromTo(heartBtn, { scale: 0.8 }, { scale: 1.25, duration: 0.28, yoyo: true, repeat: 1, ease: 'back.out(2)' });
+    }
+
+    // 2. 背景微弱突触光流涌动
     if (this.neuralNet) {
       this.neuralNet.triggerSynapticSurge(25);
     }
-    // 2. Confetti & Heart Fireworks
+
+    // 3. 殿堂级浪漫烟花盛宴 (爱心烟花 + 金柳垂瀑 + 璀璨星芒菊花)
+    if (this.fireworks) {
+      this.fireworks.celebrateGrandShow();
+    }
+
+    // 4. 精美微细流金辅助粒子 (保留柔和质感)
     if (typeof confetti !== 'undefined') {
       confetti({
-        particleCount: 80,
-        spread: 90,
-        origin: { y: 0.6 },
-        colors: ['#f43f5e', '#fbbf24', '#8b5cf6', '#ffffff']
+        particleCount: 40,
+        spread: 70,
+        origin: { y: 0.7 },
+        colors: ['#f43f5e', '#fbbf24', '#fda4af', '#ffffff']
       });
-      setTimeout(() => {
-        confetti({
-          particleCount: 50,
-          angle: 60,
-          spread: 60,
-          origin: { x: 0 },
-          colors: ['#f43f5e', '#fb7185']
-        });
-        confetti({
-          particleCount: 50,
-          angle: 120,
-          spread: 60,
-          origin: { x: 1 },
-          colors: ['#8b5cf6', '#c084fc']
-        });
-      }, 300);
     }
   }
   initSecurityProtection() {
